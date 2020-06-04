@@ -39,6 +39,7 @@ Once the sample app code is on your computer, you can do the following steps to 
 4. Your app should be up now in http://localhost:8080/ 
 5. The oauth2 callback endpoint in the sample app is http://localhost:8080/oauth2redirect
 6. To run the code on a different port, uncomment and update server.port property in application.properties. Also make sure to update the url in application.properties and in the Developer portal ("Keys" section).
+7. To build an executable JAR run the command:`./gradlew bootJar`. Find the JAR in /build/libs
 
 ## Configuring the callback endpoint
 You'll have to set a Redirect URI in the Developer Portal ("Keys" section). With this app, the typical value would be http://localhost:8080/oauth2redirect, unless you host this sample app in a different way (if you were testing HTTPS, for example).

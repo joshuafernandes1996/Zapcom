@@ -16,4 +16,4 @@ include 'api'
 include 'services:webservice'
 */
 
-rootProject.name = 'HelloWorld-Java'
+rootProject.name = 'Zapcom-TS-Upload-Java-DEV'

@@ -4,28 +4,192 @@
   <title>OAuth2 Sample App - Intuit</title>
   <link rel="stylesheet" type="text/css" href="../static/css/style.css" th:href="@{css/style.css}"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.7.7/xlsx.core.min.js"></script>
   <script>
+    var stackTrace = '';
+    var stackID = 0;
     if(window.opener) {
       window.opener.location.href = '/connected'
       window.close()
     }
-    function apiCall() {
+    function apiCall(url) {
+      var res = {}
+      stackID = stackID + 1;
+      stackTrace = stackID + ' : ' + stackTrace + 'calling '+ url + '\n';
+      $("#result").html(stackTrace )
+      $.get(url, function(data) {
+        stackTrace = stackTrace + data + '\n';
+        $("#result").html(stackTrace)
+      })
+      return data;
+    }
+        function apiPostCall(url) {
       $("#result").html('Loading...')
-      $.get("/getCompanyInfo", function(data) {
+      $.post(url, {
+  "Line": [
+    {
+      "DetailType": "SalesItemLineDetail",
+      "Amount": 100.0,
+      "SalesItemLineDetail": {
+        "ItemRef": {
+          "name": "Services",
+          "value": "1"
+        }
+      }
+    }
+  ],
+  "CustomerRef": {
+    "value": "1"
+  }
+}, function(data) {
         $("#result").html(data)
       })
     }
 
   </script>
+  <script>
+   function handleFile(e) {
+     //Get the files from Upload control
+        var files = e.target.files;
+        var i, f;
+
+     //Loop through files
+        for (i = 0, f = files[i]; i != files.length; ++i) {
+            var reader = new FileReader();
+            var name = f.name;
+            stackID = stackID + 1;
+            stackTrace = stackID + ' : ' + stackTrace + 'Reading file '+ name + '\n';
+            $("#result").html(stackTrace )
+            reader.onload = function (e) {
+                var data = e.target.result;
+
+                var result;
+                var workbook = XLSX.read(data, { type: 'binary' });
+
+                var sheet_name_list = workbook.SheetNames;
+                sheet_name_list.forEach(function (y) { /* iterate through sheets */
+                    //Convert the cell value to Json
+                    var roa = XLSX.utils.sheet_to_json(workbook.Sheets[y]);
+                    if (roa.length > 0) {
+                        result = roa;
+                    }
+                });
+                //Set of employees
+                var employeeNames = new Set([]);
+                result.forEach( (eachRow) => {
+                    employeeNames.add(eachRow.Person);
+                });
+                //Set of customers
+                var customerNames = new Set([]);
+                result.forEach( (eachRow) => {
+                    customerNames.add(eachRow.Customer);
+                });
+
+                //Resolve Employees 1st, then Customers, and then finally the Efforts
+                var employees = {};
+                var customers = {};
+
+/*----------------------------------------------*/
+                const waitForEmployee = (eachEmp) => new Promise(async (r) => {
+                                await $.get('/getEmployeeInfo?eachEmp='+eachEmp, function(data) {
+                                    var res = JSON.parse(data);
+                                    employees[''+eachEmp] = res === 'failed' ? res : res.id;
+                                })
+
+                            });
+
+                const waitForCustomer = (eachCus) => new Promise(async (r) => {
+                                await $.get('/getCustomersInfo?eachCus='+eachCus, function(data) {
+                                    var res = JSON.parse(data);
+                                    customers[''+eachCus] = res === 'failed' ? res : res.id;
+                                })
+
+                            });
+
+                async function asyncForEach(array, callback) {
+                    for (let index = 0; index < array.length; index++) {
+                        await callback(array[index], index, array);
+                    }
+                }
+
+                var validateEmployeeEffort = {};
+
+                const pushEfforts = async () => {
+                await asyncForEach(Array.from(employeeNames), async (eachEmp) => {
+                    await $.get('/getEmployeeInfo?eachEmp='+eachEmp, function(data) {
+                                    var res = JSON.parse(data);
+                                    employees[''+eachEmp] = res === 'failed' ? res : res.id;
+                                });
+                });
+                await asyncForEach(Array.from(customerNames), async (eachCus) => {
+                    await $.get('/getCustomersInfo?eachCus='+eachCus, function(data) {
+                                    var res = JSON.parse(data);
+                                    customers[''+eachCus] = res === 'failed' ? res : res.id;
+                                });
+                });
+
+                                    var samplePayload = {};
+                                    var effortSaved = [];
+                                    result.forEach((eachTS, ind) => {
+                                    var inputDate = eachTS.Date;
+                                    var outputDate = inputDate.replace(/(\d\d)\/(\d\d)\/(\d{4})/, "$3/$1/$2").toString();
+                                    var empName = eachTS.Person.toString();
+                                    var empID = employees[empName].toString();
+                                    var cusName = eachTS.Customer.toString();
+                                    var cusID = customers[cusName].toString();
+                                    var effort = eachTS.Hours.toString();
+                                    var desc = eachTS.Budget.toString();
+                                    var hlyRate = eachTS.HourlyRate.toString();
+                                    var billableStatus = hlyRate >= 1 ? 'Billable' : 'NotBillable';
+                                              samplePayload = {
+                                                              TxnDate: outputDate,
+                                                              EmployeeRefVal: empID,
+                                                              CustomerRefVal: cusID,
+                                                              Hours: effort,
+                                                              Description: desc,
+                                                              BillableStatus: billableStatus,
+                                                              HourlyRate: hlyRate
+                                              };
+
+
+                                    validateEmployeeEffort[empName+outputDate+billableStatus] = (validateEmployeeEffort[empName+outputDate+billableStatus] ? validateEmployeeEffort[empName+outputDate+billableStatus] : 0) + parseInt(effort);
+                                    //effort should be no more than 8 hours
+                                        if (validateEmployeeEffort[empName+outputDate+billableStatus] <= 8)
+                                        {
+                                                $.post('/commitEffort', samplePayload, function(data){
+                                                      var res = JSON.parse(data);
+                                                      if (res.txnDate) {
+                                                         stackTrace = stackTrace + 'Commit effort success: ' + JSON.stringify(samplePayload) + '\n';
+                                                      } else {
+                                                         stackTrace = stackTrace + 'Commit effort failed: ' + JSON.stringify(samplePayload) + '\n';
+                                                      }
+                                                      $('#result').html(stackTrace);
+                                                    })
+                                        } else {
+                                            stackTrace = stackTrace + 'Row num: ' + (ind + 2) + ' on ' +name+ 'not saved. Total Effort for an Employee towards a customer cannot be more than 8 hours. \n';
+                                            //Print the result
+                                            $('#result').html(stackTrace);
+                                        }
+                                    });
+
+                }
+                pushEfforts();
+            };
+            reader.readAsArrayBuffer(f);
+        }
+    }
+
+  //Change event to dropdownlist
+  $(document).ready(function(){
+    $('#files').change(handleFile);
+  });
+</script>
 </head>
 <body>
-  <a href="/">Home</a>
-  <h3>Connected!</h3>
-  
-  <div>
-    <button onclick="apiCall()">QuickBooks CompanyInfoAPI Call</button>
-    <br /><br />
-    <div><code id="result"></code></div>
-    </div>
+<a href="/">Home</a>
+<div style="display: flex; justify-content: center; margin-top: 100px">
+  <input type="file" id="files" name="files"/><br />
+</div>
+<div><code id="result"></code></div>
 </body>
 </html>
