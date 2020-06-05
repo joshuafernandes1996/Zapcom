@@ -1,6 +1,6 @@
 [![Sample Banner](views/Sample.png)][ss1]
 
-# HelloWorld-Java
+# Zapcom TS Upload - Java
 
 The [Intuit Developer team](https://developer.intuit.com) has written this starter app in Java using OAuth2.0 to provide working examples of OAuth 2.0 concepts, and how to integrate with Intuit endpoints. 
 
