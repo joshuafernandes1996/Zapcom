@@ -156,15 +156,18 @@
                                     //effort should be no more than 8 hours
                                         if (validateEmployeeEffort[empName+outputDate+billableStatus] <= 8)
                                         {
-                                                $.post('/commitEffort', samplePayload, function(data){
-                                                      var res = JSON.parse(data);
-                                                      if (res.txnDate) {
-                                                         stackTrace = stackTrace + 'Commit effort success: ' + JSON.stringify(samplePayload) + '\n';
-                                                      } else {
-                                                         stackTrace = stackTrace + 'Commit effort failed: ' + JSON.stringify(samplePayload) + '\n';
-                                                      }
-                                                      $('#result').html(stackTrace);
-                                                    })
+                                                var printResult = function(samplePayload) {
+                                                        return function(data, textStatus, jqXHR) {
+                                                            var res = JSON.parse(data);
+                                                            if (res.txnDate) {
+                                                               stackTrace = stackTrace + 'Commit effort success: ' + JSON.stringify(samplePayload) + '\n';
+                                                            } else {
+                                                               stackTrace = stackTrace + 'Commit effort failed: ' + JSON.stringify(samplePayload) + '\n';
+                                                            }
+                                                            $('#result').html(stackTrace);
+                                                        };
+                                                }
+                                                $.post('/commitEffort', samplePayload, printResult(samplePayload));
                                         } else {
                                             stackTrace = stackTrace + 'Row num: ' + (ind + 2) + ' on ' +name+ 'not saved. Total Effort for an Employee towards a customer cannot be more than 8 hours. \n';
                                             //Print the result
