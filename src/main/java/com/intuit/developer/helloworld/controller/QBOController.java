@@ -27,7 +27,6 @@ import com.intuit.ipp.services.QueryResult;
 import com.intuit.oauth2.client.OAuth2PlatformClient;
 import com.intuit.oauth2.data.BearerTokenResponse;
 import com.intuit.oauth2.exception.OAuthException;
-import sun.security.krb5.internal.crypto.Des;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 

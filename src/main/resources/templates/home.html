@@ -1,38 +1,55 @@
-<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hello, World! Sample App - Intuit</title>
-  <link rel="stylesheet" type="text/css" href="../static/css/home.css" th:href="@{css/home.css}" />
+    <title>Zapcom Timesheet - Intuit</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link
+            rel="stylesheet"
+            type="text/css"
+            href="../static/css/home.css"
+            th:href="@{css/home.css}"
+    />
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+          integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
 </head>
-
 <body>
-  <!-- Connect To QuickBooks Button -->
-  <div class="container">
-    <div class="header">
-      <div class="header-title">Zapcom TS upload</span></div>
-    </div>
-    <div class="content">
-      <div class="card">
-        <a class="imgLink" id="quickbook-login" href="#">
-          <img style="height: 40px;" src="../static/images/C2QB_white_btn_lg_default.png"
-            th:src="@{/images/C2QB_white_btn_lg_default.png}" />
-        </a>
+    <!-- Connect To QuickBooks Button -->
+    <div class="homeContainer">
+        <div class="content">
 
-        <div class="divider-container">
-          <div class="divider-left"></div>
-          or
-          <div class="divider-right"></div>
-        </div>
+            <div class="card" style="width: 25rem; height: 20rem;">
+                <img
+                        style="height: 40px; width: auto; margin: 1rem;"
+                        src="../static/images/logo.png"
+                        th:src="@{/images/logo.png}"
+                        class="card-img-top"
+                        alt="logo"
+                />
+                <a
+                        class="imgLink"
+                        id="quickbook-login"
+                        href="#"
+                >
+                    <img
+                            style="height: 40px;"
+                            src="../static/images/C2QB_white_btn_lg_default.png"
+                            th:src="@{/images/C2QB_white_btn_lg_default.png}"
+                    />
+                </a>
 
-        <div class="sub-title">
-          <span>Sign up for</span>
-          <button class="sub-title-btn">Quickbooks</button>
+                <div class="divider-container">
+                    <div class="divider-left"></div>
+                    or
+                    <div class="divider-right"></div>
+                </div>
+
+                <div class="sub-title">
+                    <span>Sign up for</span>
+                    <button class="sub-title-btn">Quickbooks</button>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
-  <script type="text/javascript" src="../static/js/home.js" th:src="@{js/home.js}"> </script>
+    <script type="text/javascript" src="../static/js/home.js" th:src="@{js/home.js}"></script>
 </body>
-
 </html>
