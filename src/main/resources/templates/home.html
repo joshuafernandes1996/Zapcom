@@ -1,46 +1,38 @@
-<html>
-  <head>
-    <title>Hello, World! Sample App - Intuit</title>
-    <link
-      rel="stylesheet"
-      type="text/css"
-      href="../static/css/home.css"
-      th:href="@{css/home.css}"
-    />
-  </head>
-  <body>
-    <!-- Connect To QuickBooks Button -->
-    <div class="container">
-      <div class="header">
-        <div class="header-title">Zapcom TS upload</span></div>
-      </div>
-      <div class="content">
-        <div class="card">
-          <a
-          class="imgLink"
-          id="quickbook-login"
-          href="#"
-        >
-          <img
-            style="height: 40px;"
-            src="../static/images/C2QB_white_btn_lg_default.png"
-            th:src="@{/images/C2QB_white_btn_lg_default.png}"
-          />
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hello, World! Sample App - Intuit</title>
+  <link rel="stylesheet" type="text/css" href="../static/css/home.css" th:href="@{css/home.css}" />
+</head>
+
+<body>
+  <!-- Connect To QuickBooks Button -->
+  <div class="container">
+    <div class="header">
+      <div class="header-title">Zapcom TS upload</span></div>
+    </div>
+    <div class="content">
+      <div class="card">
+        <a class="imgLink" id="quickbook-login" href="#">
+          <img style="height: 40px;" src="../static/images/C2QB_white_btn_lg_default.png"
+            th:src="@{/images/C2QB_white_btn_lg_default.png}" />
         </a>
 
-          <div class="divider-container">
-            <div class="divider-left"></div>
-            or
-            <div class="divider-right"></div>
-          </div>
+        <div class="divider-container">
+          <div class="divider-left"></div>
+          or
+          <div class="divider-right"></div>
+        </div>
 
-          <div class="sub-title">
-            <span>Sign up for</span>
-            <button class="sub-title-btn">Quickbooks</button>
-          </div>
+        <div class="sub-title">
+          <span>Sign up for</span>
+          <button class="sub-title-btn">Quickbooks</button>
         </div>
       </div>
     </div>
+  </div>
   <script type="text/javascript" src="../static/js/home.js" th:src="@{js/home.js}"> </script>
-  </body>
+</body>
+
 </html>
