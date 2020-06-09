@@ -36,7 +36,7 @@ public class HomeController {
 	
 	@RequestMapping("/connected")
 	public String connected() {
-		return "connected";
+		return "dashboard";
 	}
 	
 	/**
