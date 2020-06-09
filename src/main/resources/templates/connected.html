@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-  <head>
+<head>
     <title>OAuth2 Sample App - Intuit</title>
     <link
-      rel="stylesheet"
-      type="text/css"
-      href="../static/css/style.css"
-      th:href="@{css/style.css}"
+            rel="stylesheet"
+            type="text/css"
+            href="../static/css/style.css"
+            th:href="@{css/style.css}"
     />
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+          integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.7.7/xlsx.core.min.js"></script>
     <script>
@@ -54,6 +56,7 @@
           }
         );
       }
+
     </script>
     <script>
       function handleFile(e) {
@@ -229,13 +232,18 @@
       $(document).ready(function () {
         $("#files").change(handleFile);
       });
+
     </script>
-  </head>
-  <body>
+</head>
+<body>
+    <button type="button" class="btn btn-dark"
+            th:onclick="window.location.href='/logout'"
+    >logout
+    </button>
     <a href="/">Home</a>
     <div style="display: flex; justify-content: center; margin-top: 100px;">
-      <input type="file" id="files" name="files" /><br />
+        <input type="file" id="files" name="files"/><br/>
     </div>
     <div><code id="result"></code></div>
-  </body>
+</body>
 </html>
