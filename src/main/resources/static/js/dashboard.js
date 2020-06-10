@@ -174,6 +174,7 @@ if (isAdvancedUpload) {
   $input.on("change", function (e) {
     showFiles(e.target.files);
     console.log(e.target.files);
+    parseXLSX(e.target.files[0]);
   });
 }
 
