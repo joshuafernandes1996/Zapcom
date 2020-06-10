@@ -115,3 +115,8 @@ body {
 .pt-3-half {
   padding-top: 1.4rem;
 }
+
+.toast-container {
+position: relative;
+min-height: 500px;
+}

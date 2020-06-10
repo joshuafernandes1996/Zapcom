@@ -4,6 +4,13 @@ const $label = $form.find("label");
 const $tableID = $("#table");
 const $BTN = $("#export-btn");
 const $EXPORT = $("#export");
+const toastOptions = {
+  animation: true,
+  autohide: true,
+  delay: 2000,
+};
+const $toast = $(".toast");
+$toast.toast();
 let excelData = [];
 let tableRows;
 const newTr = `
@@ -22,24 +29,37 @@ const newTr = `
   </td>
 </tr>`;
 
+async function asyncForEach(array, callback) {
+  for (let index = 0; index < array.length; index++) {
+    await callback(array[index], index, array);
+  }
+}
+
 function ExcelDateToJSDate(serial) {
-    var utc_days  = Math.floor(serial - 25569);
-    var utc_value = utc_days * 86400;                                        
-    var date_info = new Date(utc_value * 1000);
- 
-    var fractional_day = serial - Math.floor(serial) + 0.0000001;
- 
-    var total_seconds = Math.floor(86400 * fractional_day);
- 
-    var seconds = total_seconds % 60;
- 
-    total_seconds -= seconds;
- 
-    var hours = Math.floor(total_seconds / (60 * 60));
-    var minutes = Math.floor(total_seconds / 60) % 60;
- 
-    return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate(), hours, minutes, seconds);
- }
+  var utc_days = Math.floor(serial - 25569);
+  var utc_value = utc_days * 86400;
+  var date_info = new Date(utc_value * 1000);
+
+  var fractional_day = serial - Math.floor(serial) + 0.0000001;
+
+  var total_seconds = Math.floor(86400 * fractional_day);
+
+  var seconds = total_seconds % 60;
+
+  total_seconds -= seconds;
+
+  var hours = Math.floor(total_seconds / (60 * 60));
+  var minutes = Math.floor(total_seconds / 60) % 60;
+
+  return new Date(
+    date_info.getFullYear(),
+    date_info.getMonth(),
+    date_info.getDate(),
+    hours,
+    minutes,
+    seconds
+  );
+}
 
 const isAdvancedUpload = (function () {
   var div = document.createElement("div");
@@ -52,6 +72,43 @@ const isAdvancedUpload = (function () {
 
 const showFiles = function (files) {
   $label.text(files[0].name);
+  $toast.toast("show");
+};
+
+const validateSheet = async function (sheet) {
+  //Set of employees
+  console.log("Validate Sheets");
+  let employeeNames = new Set([]);
+  sheet.forEach((eachRow) => {
+    employeeNames.add(eachRow.Person);
+  });
+  //Set of customers
+  let customerNames = new Set([]);
+  sheet.forEach((eachRow) => {
+    customerNames.add(eachRow.Customer);
+  });
+
+  //Resolve Employees 1st, then Customers, and then finally the Efforts
+  let employees = {};
+  let customers = {};
+  let validateEmployeeEffort = {};
+
+  await asyncForEach(Array.from(employeeNames), async (eachEmp) => {
+    await fetch("/getEmployeeInfo?eachEmp=" + eachEmp).then((data) => {
+      var res = JSON.parse(data);
+      employees["" + eachEmp] = res === "failed" ? res : res.id;
+    });
+  });
+
+  await asyncForEach(Array.from(customerNames), async (eachCus) => {
+    await fetch("/getCustomersInfo?eachCus=" + eachCus).then((data) => {
+      var res = JSON.parse(data);
+      customers["" + eachCus] = res === "failed" ? res : res.id;
+    });
+  });
+
+  console.log("[Employees]", employees);
+  console.log("[Customers]", customers);
 };
 
 const parseSheets = function (workbook, sheets) {
@@ -62,8 +119,6 @@ const parseSheets = function (workbook, sheets) {
       return roa;
     }
   });
-
-  console.log(stuff);
 };
 
 const parseXLSX = function (file) {
@@ -71,28 +126,27 @@ const parseXLSX = function (file) {
   let reader = new FileReader();
   reader.addEventListener("load", (event) => {
     const fileData = event.target.result;
-    const workBook = XLSX.read(fileData, { type: "binary" });
+    const workBook = XLSX.read(fileData, { type: "array" });
     const sheetNameList = workBook.SheetNames;
     console.log("[Sheet Names]", sheetNameList);
     excelData = parseSheets(workBook, sheetNameList);
-    console.log(excelData);
-    populateTable()
+    console.log("[Excel Data]", excelData);
+    validateSheet(excelData[0]);
+    populateTable();
   });
-  reader.readAsBinaryString(file);
+  reader.readAsArrayBuffer(file);
 };
 
 const populateTable = function () {
   if ($tableID.find("tbody tr").length === 0) {
     let template = ``;
-    console.log(excelData[0])
     excelData[0].forEach((element) => {
-        const timestamp = ExcelDateToJSDate(element.Date)
-        console.log(timestamp)
-        const date = timestamp.getDate()
-        const month = timestamp.getMonth() + 1
-        const year = timestamp.getFullYear()
-      template = template + `<tr>
-            <td class="pt-3-half" contenteditable="true">${month}/${date}/${year}</td>
+      const parsedDate = XLSX.SSF.parse_date_code(element.Date);
+      const { d, m, y } = parsedDate;
+      template =
+        template +
+        `<tr>
+            <td class="pt-3-half" contenteditable="true">${m}/${d}/${y}</td>
             <td class="pt-3-half" contenteditable="true">${element.Hours}</td>
             <td class="pt-3-half" contenteditable="true">${element.Person}</td>
             <td class="pt-3-half" contenteditable="true">${element.Budget}</td>
@@ -127,7 +181,7 @@ if (isAdvancedUpload) {
     })
     .on("drop", function (e) {
       droppedFiles = e.originalEvent.dataTransfer.files;
-      console.log(droppedFiles);
+      //console.log(droppedFiles);
       showFiles(droppedFiles);
       parseXLSX(droppedFiles[0]);
     });
