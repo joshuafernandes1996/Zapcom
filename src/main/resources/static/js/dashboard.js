@@ -12,6 +12,8 @@ const toastOptions = {
 const $toast = $(".toast");
 $toast.toast();
 let excelData = [];
+let parsedExcelData = [];
+
 let tableRows;
 const newTr = `
 <tr>
@@ -51,7 +53,7 @@ function ExcelDateToJSDate(serial) {
   var hours = Math.floor(total_seconds / (60 * 60));
   var minutes = Math.floor(total_seconds / 60) % 60;
 
-  return new Date(
+  let dateObject = new Date(
     date_info.getFullYear(),
     date_info.getMonth(),
     date_info.getDate(),
@@ -59,6 +61,7 @@ function ExcelDateToJSDate(serial) {
     minutes,
     seconds
   );
+  return `${date_info.getMonth()}/${date_info.getDate()}/${date_info.getFullYear()}`;
 }
 
 const isAdvancedUpload = (function () {
@@ -88,27 +91,93 @@ const validateSheet = async function (sheet) {
     customerNames.add(eachRow.Customer);
   });
 
-  //Resolve Employees 1st, then Customers, and then finally the Efforts
+  //console.log("[Employee Names]", employeeNames);
+  //console.log("[Customer Names]", customerNames);
+
+  // Resolve Employees 1st, then Customers, and then finally the Efforts
   let employees = {};
   let customers = {};
   let validateEmployeeEffort = {};
 
+  // await asyncForEach(Array.from(employeeNames), async (eachEmp) => {
+  //   await $.get("/getEmployeeInfo?eachEmp=" + eachEmp, function (data) {
+  //     var res = JSON.parse(data);
+  //     employees["" + eachEmp] = res === "failed" ? res : res.id;
+  //   });
+  // });
+
+  // await asyncForEach(Array.from(customerNames), async (eachCus) => {
+  //   await $.get("/getCustomersInfo?eachCus=" + eachCus, function (data) {
+  //     var res = JSON.parse(data);
+  //     customers["" + customers] = res === "failed" ? res : res.id;
+  //   });
+  // });
+
   await asyncForEach(Array.from(employeeNames), async (eachEmp) => {
-    await fetch("/getEmployeeInfo?eachEmp=" + eachEmp).then((data) => {
-      var res = JSON.parse(data);
-      employees["" + eachEmp] = res === "failed" ? res : res.id;
-    });
+    try {
+      const response = await fetch("/getEmployeeInfo?eachEmp=" + eachEmp);
+      const data = await response.json();
+      //console.log(data);
+      employees["" + eachEmp] = data === "failed" ? data : data.id;
+    } catch (error) {
+      console.log(error);
+    }
   });
 
   await asyncForEach(Array.from(customerNames), async (eachCus) => {
-    await fetch("/getCustomersInfo?eachCus=" + eachCus).then((data) => {
-      var res = JSON.parse(data);
-      customers["" + eachCus] = res === "failed" ? res : res.id;
-    });
+    try {
+      const response = await fetch("/getCustomersInfo?eachCus=" + eachCus);
+      const data = await response.json();
+      //console.log(data);
+      customers["" + eachCus] = data === "failed" ? data : data.id;
+    } catch (error) {
+      console.log(error);
+    }
   });
 
-  console.log("[Employees]", employees);
-  console.log("[Customers]", customers);
+  //console.log("[Employees]", employees);
+  //console.log("[Customers]", customers);
+
+  sheet.forEach((tsRow, idx) => {
+    //console.log(tsRow)
+    const parsedDate = XLSX.SSF.parse_date_code(tsRow.Date);
+    const { d, m, y } = parsedDate;
+    const inputDate = `${m}/${d}/${y}`;
+    const outputDate = inputDate
+      .replace(/(\d\d)\/(\d\d)\/(\d{4})/, "$3/$1/$2")
+      .toString();
+    const empName = tsRow.Person.toString();
+    const empID = employees[empName].toString();
+    const cusName = tsRow.Customer.toString();
+    const cusID = customers[cusName].toString();
+    const effort = tsRow.Hours.toString();
+    const hlyRate = tsRow.HourlyRate.toString();
+    const desc = tsRow.Budget.toString();
+    const billableStatus = hlyRate >= 1 ? "Billable" : "NotBillable";
+    const samplePayload = {
+      TxnDate: outputDate,
+      EmployeeRefVal: empID,
+      EmployeeName: empName,
+      CustomerRefVal: cusID,
+      CustomerName: cusName,
+      Hours: effort,
+      Description: desc,
+      BillableStatus: billableStatus,
+      HourlyRate: hlyRate,
+    };
+    parsedExcelData.push(samplePayload)
+    validateEmployeeEffort[empName + outputDate + billableStatus] =
+      (validateEmployeeEffort[empName + outputDate + billableStatus]
+        ? validateEmployeeEffort[empName + outputDate + billableStatus]
+        : 0) + parseInt(effort);
+    let validationErrors = [];
+    if (validateEmployeeEffort[empName + outputDate + billableStatus] > 8) {
+      //console.log("[Row error index]", idx)
+      validationErrors.push("Total Effort for an Employee towards a customer cannot be more than 8 hours")
+    }
+  });
+  console.log("[Sample Payload]", parsedExcelData)
+  console.log("[Validated employee effort]", validateEmployeeEffort);
 };
 
 const parseSheets = function (workbook, sheets) {
@@ -124,33 +193,31 @@ const parseSheets = function (workbook, sheets) {
 const parseXLSX = function (file) {
   console.log("Here");
   let reader = new FileReader();
-  reader.addEventListener("load", (event) => {
+  reader.addEventListener("load", async (event) => {
     const fileData = event.target.result;
-    const workBook = XLSX.read(fileData, { type: "array" });
+    const workBook = XLSX.read(fileData, { type: "binary" });
     const sheetNameList = workBook.SheetNames;
     console.log("[Sheet Names]", sheetNameList);
     excelData = parseSheets(workBook, sheetNameList);
     console.log("[Excel Data]", excelData);
-    validateSheet(excelData[0]);
+    await validateSheet(excelData[0]);
     populateTable();
   });
-  reader.readAsArrayBuffer(file);
+  reader.readAsBinaryString(file);
 };
 
 const populateTable = function () {
   if ($tableID.find("tbody tr").length === 0) {
     let template = ``;
-    excelData[0].forEach((element) => {
-      const parsedDate = XLSX.SSF.parse_date_code(element.Date);
-      const { d, m, y } = parsedDate;
+    parsedExcelData.forEach((element, idx) => {
       template =
         template +
         `<tr>
-            <td class="pt-3-half" contenteditable="true">${m}/${d}/${y}</td>
+            <td class="pt-3-half" contenteditable="true">${element.TxnDate}</td>
             <td class="pt-3-half" contenteditable="true">${element.Hours}</td>
-            <td class="pt-3-half" contenteditable="true">${element.Person}</td>
-            <td class="pt-3-half" contenteditable="true">${element.Budget}</td>
-            <td class="pt-3-half" contenteditable="true">${element.Customer}</td>
+            <td class="pt-3-half" contenteditable="true">${element.EmployeeName}</td>
+            <td class="pt-3-half" contenteditable="true">${element.Description}</td>
+            <td class="pt-3-half" contenteditable="true">${element.CustomerName}</td>
             <td class="pt-3-half" contenteditable="true">${element.HourlyRate}</td>
             <td>
               <span class="table-remove"><button type="button" class="btn btn-danger btn-rounded btn-sm my-0 waves-effect waves-light">Remove</button></span>
