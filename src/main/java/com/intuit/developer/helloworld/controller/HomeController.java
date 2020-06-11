@@ -56,6 +56,11 @@ public class HomeController {
         return "connected";
     }
 
+    @RequestMapping("/dashboard")
+    public String dashboard() {
+        return "dashboard";
+    }
+
     /**
      * Controller mapping for connectToQuickbooks button
      *

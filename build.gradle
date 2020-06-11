@@ -29,7 +29,7 @@ targetCompatibility = 1.8
 
 dependencies {
 	compile("com.intuit.quickbooks-online:ipp-v3-java-data:4.0.1")
-    compile (group: 'com.intuit.quickbooks-online', name: 'ipp-v3-java-devkit', version: '4.0.1', classifier: 'jar-with-dependencies')   
+    compile (group: 'com.intuit.quickbooks-online', name: 'ipp-v3-java-devkit', version: '4.0.1', classifier: 'jar-with-dependencies')
     compile (group: 'com.intuit.quickbooks-online', name: 'oauth2-platform-api', version: '4.0.3', classifier: 'jar-with-dependencies')
     compile("org.springframework.boot:spring-boot-starter-web")
     compile("org.springframework.boot:spring-boot-starter-thymeleaf")
@@ -37,11 +37,11 @@ dependencies {
     compile("org.json:json")
     compile("log4j:log4j:1.2.17")
     compile (group: 'ant', name: 'ant', version: '1.7.0')
-    testCompile('org.springframework.boot:spring-boot-starter-test')
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
     compileOnly("org.springframework.boot:spring-boot-devtools")
-
+    //implementation "org.springframework.boot:spring-boot-starter-security"
 }
 
 wrapper {
-    gradleVersion = '2.3'
+    gradleVersion = '5.4.1'
 }

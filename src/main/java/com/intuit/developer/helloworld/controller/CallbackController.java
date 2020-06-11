@@ -57,7 +57,7 @@ public class CallbackController {
 	    
 	            // Update your Data store here with user's AccessToken and RefreshToken along with the realmId
 
-	            return "connected";
+	            return "dashboard";
 	        }
 	        logger.info("csrf token mismatch " );
         } catch (OAuthException e) {
