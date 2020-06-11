@@ -10,6 +10,7 @@ import com.intuit.oauth2.config.Environment;
 import com.intuit.oauth2.data.PlatformResponse;
 import com.intuit.oauth2.exception.ConnectionException;
 import org.apache.log4j.Logger;
+import org.apache.tools.ant.taskdefs.condition.Http;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,32 +34,45 @@ public class HomeController {
     OAuth2PlatformClientFactory factory;
 
     @RequestMapping("/")
-    public String home() {
-        return "home";
+    public String home(HttpSession session) {
+        if (session.getAttribute("access_token") == null)
+            return "home";
+        else
+            return "dashboard";
     }
 
     @RequestMapping("/logout")
     public String logout(HttpSession session) throws ConnectionException {
-        OAuth2PlatformClient client = factory.getOAuth2PlatformClient();
-        String refreshToken = (String) session.getAttribute("refresh_token");
+        if (session.getAttribute("access_token") == null)
+            return "home";
+        else {
+            OAuth2PlatformClient client = factory.getOAuth2PlatformClient();
+            String refreshToken = (String) session.getAttribute("refresh_token");
 
-        //Call revoke endpoint
-        PlatformResponse response = client.revokeToken(refreshToken); //set refresh token
-        System.out.println("---------------------------");
-        System.out.println(refreshToken);
-        System.out.println(response.getErrorMessage());
-
-        return "home";
+            //Call revoke endpoint
+            PlatformResponse response = client.revokeToken(refreshToken); //set refresh token
+            System.out.println("---------------------------");
+            System.out.println(refreshToken);
+            System.out.println(response.getErrorMessage());
+            session.invalidate();
+            return "dashboard";
+        }
     }
 
     @RequestMapping("/connected")
-    public String connected() {
-        return "connected";
+    public String connected(HttpSession session) {
+        if (session.getAttribute("access_token") == null)
+            return "home";
+        else
+            return "connected";
     }
 
     @RequestMapping("/dashboard")
-    public String dashboard() {
-        return "dashboard";
+    public String dashboard(HttpSession session) {
+        if (session.getAttribute("access_token") == null)
+            return "home";
+        else
+            return "dashboard";
     }
 
     /**
