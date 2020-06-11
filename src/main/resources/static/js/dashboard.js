@@ -12,8 +12,6 @@ const toastOptions = {
 const $toast = $(".toast");
 $toast.toast();
 let excelData = [];
-let parsedExcelData = [];
-
 let tableRows;
 const newTr = `
 <tr>
@@ -79,6 +77,8 @@ const showFiles = function (files) {
 };
 
 const validateSheet = async function (sheet) {
+  let customData = {};
+
   //Set of employees
   console.log("Validate Sheets");
   let employeeNames = new Set([]);
@@ -137,9 +137,11 @@ const validateSheet = async function (sheet) {
 
   //console.log("[Employees]", employees);
   //console.log("[Customers]", customers);
-
+  let samplePayloads = [];
+  let rowErrors = {};
   sheet.forEach((tsRow, idx) => {
     //console.log(tsRow)
+    let validationErrors = [];
     const parsedDate = XLSX.SSF.parse_date_code(tsRow.Date);
     const { d, m, y } = parsedDate;
     const inputDate = `${m}/${d}/${y}`;
@@ -157,27 +159,38 @@ const validateSheet = async function (sheet) {
     const samplePayload = {
       TxnDate: outputDate,
       EmployeeRefVal: empID,
-      EmployeeName: empName,
+      Person: empName,
       CustomerRefVal: cusID,
-      CustomerName: cusName,
+      Customer: cusName,
       Hours: effort,
       Description: desc,
       BillableStatus: billableStatus,
       HourlyRate: hlyRate,
     };
-    parsedExcelData.push(samplePayload)
+    samplePayloads.push(samplePayload);
     validateEmployeeEffort[empName + outputDate + billableStatus] =
       (validateEmployeeEffort[empName + outputDate + billableStatus]
         ? validateEmployeeEffort[empName + outputDate + billableStatus]
         : 0) + parseInt(effort);
-    let validationErrors = [];
     if (validateEmployeeEffort[empName + outputDate + billableStatus] > 8) {
       //console.log("[Row error index]", idx)
-      validationErrors.push("Total Effort for an Employee towards a customer cannot be more than 8 hours")
+      validationErrors.push(
+        "Total Effort for an Employee towards a customer cannot be more than 8 hours"
+      );
+      rowErrors[idx] = validationErrors;
     }
   });
-  console.log("[Sample Payload]", parsedExcelData)
-  console.log("[Validated employee effort]", validateEmployeeEffort);
+
+  if (!jQuery.isEmptyObject(rowErrors)) {
+    customData["hasErrors"] = true;
+    customData["errors"] = rowErrors;
+  } else {
+    customData["hasErrors"] = false;
+  }
+  customData["payload"] = samplePayloads;
+  console.log("[Validated payload]", customData);
+  //console.log("[Validated employee effort]", validateEmployeeEffort);
+  return customData;
 };
 
 const parseSheets = function (workbook, sheets) {
@@ -200,32 +213,50 @@ const parseXLSX = function (file) {
     console.log("[Sheet Names]", sheetNameList);
     excelData = parseSheets(workBook, sheetNameList);
     console.log("[Excel Data]", excelData);
-    await validateSheet(excelData[0]);
-    populateTable();
+    const validatedData = await validateSheet(excelData[0]);
+    populateTable(validatedData);
   });
   reader.readAsBinaryString(file);
 };
 
-const populateTable = function () {
-  if ($tableID.find("tbody tr").length === 0) {
-    let template = ``;
-    parsedExcelData.forEach((element, idx) => {
-      template =
-        template +
-        `<tr>
-            <td class="pt-3-half" contenteditable="true">${element.TxnDate}</td>
-            <td class="pt-3-half" contenteditable="true">${element.Hours}</td>
-            <td class="pt-3-half" contenteditable="true">${element.EmployeeName}</td>
-            <td class="pt-3-half" contenteditable="true">${element.Description}</td>
-            <td class="pt-3-half" contenteditable="true">${element.CustomerName}</td>
-            <td class="pt-3-half" contenteditable="true">${element.HourlyRate}</td>
-            <td>
-              <span class="table-remove"><button type="button" class="btn btn-danger btn-rounded btn-sm my-0 waves-effect waves-light">Remove</button></span>
-            </td>
-          </tr>`;
-    });
-    $("tbody").append(template);
+const populateTable = function (validatedData) {
+  //console.log("[Validated Data]", validatedData)
+  const { payload } = validatedData;
+  if ($tableID.find("tbody tr").length !== 0) {
+    $tableID.find("tbody").empty();
   }
+  let tableRowTemplate = ``;
+  payload.forEach((element, idx) => {
+    let tooltipTemplate = ``;
+    if (validatedData.hasErrors) {
+      const { errors } = validatedData;
+      let tooltipHtmlTemplate = ``;
+      if (errors[idx]) {
+        console.log("[Errors]", errors[idx]);
+        errors[idx].forEach((element) => {
+          console.log(element);
+          tooltipHtmlTemplate += `<div>${element}</div>`;
+        });
+        console.log(tooltipHtmlTemplate);
+        tooltipTemplate = `class="alert alert-danger" data-toggle="tooltip" data-html="true" title="${tooltipHtmlTemplate}"`;
+        console.log(tooltipTemplate);
+      }
+    }
+
+    tableRowTemplate += `<tr ${tooltipTemplate}>
+          <td class="pt-3-half" contenteditable="true">${element.TxnDate}</td>
+          <td class="pt-3-half" contenteditable="true">${element.Hours}</td>
+          <td class="pt-3-half" contenteditable="true">${element.Person}</td>
+          <td class="pt-3-half" contenteditable="true">${element.Description}</td>
+          <td class="pt-3-half" contenteditable="true">${element.Customer}</td>
+          <td class="pt-3-half" contenteditable="true">${element.HourlyRate}</td>
+          <td>
+            <span class="table-remove"><button type="button" class="btn btn-danger btn-rounded btn-sm my-0 waves-effect waves-light">Delete</button></span>
+          </td>
+        </tr>`;
+  });
+  $("tbody").append(tableRowTemplate);
+  $('[data-toggle="tooltip"]').tooltip();
 };
 
 if (isAdvancedUpload) {
@@ -313,21 +344,6 @@ if (isAdvancedUpload) {
 
 $tableID.on("click", ".table-remove", function () {
   $(this).parents("tr").detach();
-});
-
-$tableID.on("click", ".table-up", function () {
-  const $row = $(this).parents("tr");
-
-  if ($row.index() === 0) {
-    return;
-  }
-
-  $row.prev().before($row.get(0));
-});
-
-$tableID.on("click", ".table-down", function () {
-  const $row = $(this).parents("tr");
-  $row.next().after($row.get(0));
 });
 
 // A few jQuery helpers for exporting only

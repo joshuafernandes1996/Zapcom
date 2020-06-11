@@ -117,6 +117,6 @@ body {
 }
 
 .toast-container {
-position: relative;
-min-height: 500px;
+  position: absolute; 
+  top: 0; right: 0;
 }
