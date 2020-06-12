@@ -6,6 +6,7 @@ import java.util.List;
 
 import javax.servlet.http.HttpSession;
 
+import com.intuit.developer.helloworld.model.TimeActivityRequestBody;
 import com.intuit.ipp.data.*;
 import com.intuit.ipp.data.Error;
 import org.apache.commons.lang.StringUtils;
@@ -338,13 +339,10 @@ public class QBOController {
 	 * @return
 	 */
 	@ResponseBody
-	@RequestMapping(value = "/commitEffort", method = RequestMethod.POST)
-	public String commitEffortForEmployee(HttpSession session, @RequestParam String TxnDate, @RequestParam String EmployeeRefVal, @RequestParam String CustomerRefVal,
-		@RequestParam String Hours, @RequestParam String Description,
-		@RequestParam String HourlyRate) {
-
+	@RequestMapping(value = "/commitEffort", method = RequestMethod.POST, produces = "application/json")
+	public String commitEffortForEmployee(HttpSession session, @RequestBody TimeActivityRequestBody timeActivityData) {
+		System.out.println("Request body "+createResponse(timeActivityData));
 		TimeActivity timeActivity = new TimeActivity();
-
 		/*if (BillableStatus.equalsIgnoreCase("BILLABLE")) {
 			timeActivity.setBillableStatus(BillableStatusEnum.BILLABLE);
 		} else {
@@ -352,18 +350,18 @@ public class QBOController {
 		}*/
 
 		ReferenceType r = new ReferenceType();
-		r.setValue(CustomerRefVal);
+		r.setValue(timeActivityData.getCustomerRefVal());
 		timeActivity.setCustomerRef(r);
 		ReferenceType r1 = new ReferenceType();
-		r1.setValue(EmployeeRefVal);
+		r1.setValue(timeActivityData.getEmployeeRefVal());
 		timeActivity.setEmployeeRef(r1);
-		BigDecimal b = new BigDecimal(HourlyRate);
+		BigDecimal b = new BigDecimal(timeActivityData.getHourlyRate());
 		timeActivity.setHourlyRate(b);
-		Integer i = new Integer(Hours);
+		Integer i = Integer.valueOf(timeActivityData.getHours());
 		timeActivity.setHours(i);
-		timeActivity.setTxnDate(new Date(TxnDate));
+		timeActivity.setTxnDate(new Date(timeActivityData.getTxnDate()));
 		timeActivity.setNameOf(TimeActivityTypeEnum.EMPLOYEE);
-		timeActivity.setDescription(Description);
+		timeActivity.setDescription(timeActivityData.getDescription());
 
 		System.out.println(timeActivity);
 

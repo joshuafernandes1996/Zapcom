@@ -4,6 +4,7 @@ const $label = $form.find("label");
 const $tableID = $("#table");
 const $BTN = $("#export-btn");
 const $EXPORT = $("#export");
+const $editModal = $("#edit-modal");
 const toastOptions = {
   animation: true,
   autohide: true,
@@ -13,21 +14,7 @@ const $toast = $(".toast");
 $toast.toast();
 let excelData = [];
 let tableRows;
-const newTr = `
-<tr>
-  <td class="pt-3-half" contenteditable="true">Example</td>
-  <td class="pt-3-half" contenteditable="true">Example</td>
-  <td class="pt-3-half" contenteditable="true">Example</td>
-  <td class="pt-3-half" contenteditable="true">Example</td>
-  <td class="pt-3-half" contenteditable="true">Example</td>
-  <td class="pt-3-half">
-    <span class="table-up"><a href="#!" class="indigo-text"><i class="fas fa-long-arrow-alt-up" aria-hidden="true"></i></a></span>
-    <span class="table-down"><a href="#!" class="indigo-text"><i class="fas fa-long-arrow-alt-down" aria-hidden="true"></i></a></span>
-  </td>
-  <td>
-    <span class="table-remove"><button type="button" class="btn btn-danger btn-rounded btn-sm my-0 waves-effect waves-light">Remove</button></span>
-  </td>
-</tr>`;
+let dataTable;
 
 async function asyncForEach(array, callback) {
   for (let index = 0; index < array.length; index++) {
@@ -73,12 +60,17 @@ const isAdvancedUpload = (function () {
 
 const showFiles = function (files) {
   $label.text(files[0].name);
-  $toast.toast("show");
+};
+
+const updateInArray = function (array, element) {
+  const arrayCopy = [...array];
+  arrayCopy.splice(element.Id, 1, element);
+  return arrayCopy;
 };
 
 const validateSheet = async function (sheet) {
   let customData = {};
-
+  $("#validate-toast").toast("show");
   //Set of employees
   console.log("Validate Sheets");
   let employeeNames = new Set([]);
@@ -98,20 +90,6 @@ const validateSheet = async function (sheet) {
   let employees = {};
   let customers = {};
   let validateEmployeeEffort = {};
-
-  // await asyncForEach(Array.from(employeeNames), async (eachEmp) => {
-  //   await $.get("/getEmployeeInfo?eachEmp=" + eachEmp, function (data) {
-  //     var res = JSON.parse(data);
-  //     employees["" + eachEmp] = res === "failed" ? res : res.id;
-  //   });
-  // });
-
-  // await asyncForEach(Array.from(customerNames), async (eachCus) => {
-  //   await $.get("/getCustomersInfo?eachCus=" + eachCus, function (data) {
-  //     var res = JSON.parse(data);
-  //     customers["" + customers] = res === "failed" ? res : res.id;
-  //   });
-  // });
 
   await asyncForEach(Array.from(employeeNames), async (eachEmp) => {
     try {
@@ -142,21 +120,32 @@ const validateSheet = async function (sheet) {
   sheet.forEach((tsRow, idx) => {
     //console.log(tsRow)
     let validationErrors = [];
-    const parsedDate = XLSX.SSF.parse_date_code(tsRow.Date);
-    const { d, m, y } = parsedDate;
-    const inputDate = `${m}/${d}/${y}`;
-    const outputDate = inputDate
-      .replace(/(\d\d)\/(\d\d)\/(\d{4})/, "$3/$1/$2")
-      .toString();
+    let outputDate;
+    if (tsRow.Date) {
+      const parsedDate = XLSX.SSF.parse_date_code(tsRow.Date);
+      const { d, m, y } = parsedDate;
+      const inputDate = `${m}/${d}/${y}`;
+      outputDate = inputDate
+        .replace(/(\d\d)\/(\d\d)\/(\d{4})/, "$3/$1/$2")
+        .toString();
+    } else {
+      outputDate = tsRow.TxnDate.replace(
+        /(\d\d)\/(\d\d)\/(\d{4})/,
+        "$3/$1/$2"
+      ).toString();
+    }
     const empName = tsRow.Person.toString();
     const empID = employees[empName].toString();
     const cusName = tsRow.Customer.toString();
     const cusID = customers[cusName].toString();
     const effort = tsRow.Hours.toString();
     const hlyRate = tsRow.HourlyRate.toString();
-    const desc = tsRow.Budget.toString();
+    const desc = tsRow.Budget
+      ? tsRow.Budget.toString()
+      : tsRow.Description.toString();
     const billableStatus = hlyRate >= 1 ? "Billable" : "NotBillable";
     const samplePayload = {
+      Id: idx,
       TxnDate: outputDate,
       EmployeeRefVal: empID,
       Person: empName,
@@ -189,7 +178,6 @@ const validateSheet = async function (sheet) {
   }
   customData["payload"] = samplePayloads;
   console.log("[Validated payload]", customData);
-  //console.log("[Validated employee effort]", validateEmployeeEffort);
   return customData;
 };
 
@@ -220,44 +208,179 @@ const parseXLSX = function (file) {
 };
 
 const populateTable = function (validatedData) {
-  //console.log("[Validated Data]", validatedData)
-  const { payload } = validatedData;
-  if ($tableID.find("tbody tr").length !== 0) {
-    $tableID.find("tbody").empty();
-  }
-  let tableRowTemplate = ``;
-  payload.forEach((element, idx) => {
-    let tooltipTemplate = ``;
-    if (validatedData.hasErrors) {
-      const { errors } = validatedData;
-      let tooltipHtmlTemplate = ``;
-      if (errors[idx]) {
-        console.log("[Errors]", errors[idx]);
-        errors[idx].forEach((element) => {
-          console.log(element);
-          tooltipHtmlTemplate += `<div>${element}</div>`;
-        });
-        console.log(tooltipHtmlTemplate);
-        tooltipTemplate = `class="alert alert-danger" data-toggle="tooltip" data-html="true" title="${tooltipHtmlTemplate}"`;
-        console.log(tooltipTemplate);
-      }
-    }
+  let { payload } = validatedData;
+  dataTable = $("#data-table").DataTable({
+    responsive: true,
+    data: payload,
+    dom: "Bfrtip",
+    buttons: [
+      {
+        text: "Edit",
+        action: function () {
+          const selectedRow = dataTable
+            .rows({ selected: true })
+            .data()
+            .toArray();
+          console.log(selectedRow);
+          const {
+            Id,
+            TxnDate,
+            Person,
+            Customer,
+            EmployeeRefVal,
+            CustomerRefVal,
+            Hours,
+            Description,
+            BillableStatus,
+            HourlyRate,
+          } = selectedRow[0];
+          $("#date").val(TxnDate);
+          $("#hours").val(Hours);
+          $("#person").val(Person);
+          $("#budget").val(Description);
+          $("#customer").val(Customer);
+          $("#hourlyRate").val(HourlyRate);
+          $("#billable-status").val(BillableStatus);
+          $("#row-id").val(Id);
+          $("#employee-id").val(EmployeeRefVal);
+          $("#customer-id").val(CustomerRefVal);
+          $editModal.modal({ show: true });
+        },
+      },
+      {
+        text: "Delete",
+        action: function () {
+          dataTable.rows({ selected: true }).remove().draw();
+        },
+      },
+      {
+        text: "Submit",
+        action: async function () {
+          const tableData = dataTable.rows().data().toArray();
+          console.log(tableData);
+          const data = await validateSheet(tableData);
 
-    tableRowTemplate += `<tr ${tooltipTemplate}>
-          <td class="pt-3-half" contenteditable="true">${element.TxnDate}</td>
-          <td class="pt-3-half" contenteditable="true">${element.Hours}</td>
-          <td class="pt-3-half" contenteditable="true">${element.Person}</td>
-          <td class="pt-3-half" contenteditable="true">${element.Description}</td>
-          <td class="pt-3-half" contenteditable="true">${element.Customer}</td>
-          <td class="pt-3-half" contenteditable="true">${element.HourlyRate}</td>
-          <td>
-            <span class="table-remove"><button type="button" class="btn btn-danger btn-rounded btn-sm my-0 waves-effect waves-light">Delete</button></span>
-          </td>
-        </tr>`;
+          if (data.hasErrors) {
+            dataTable.clear().rows.add(data.payload).draw();
+          } else {
+            data.payload.forEach(async (element) => {
+              const {
+                TxnDate,
+                EmployeeRefVal,
+                CustomerRefVal,
+                Hours,
+                Description,
+                BillableStatus,
+                HourlyRate,
+              } = element;
+              const samplePayload = {
+                txnDate: TxnDate,
+                employeeRefVal: EmployeeRefVal,
+                customerRefVal: CustomerRefVal,
+                hours: Hours,
+                description: Description,
+                billableStatus: BillableStatus,
+                hourlyRate: HourlyRate,
+              };
+              console.log("[Payload]", payload);
+              try {
+                const response = await fetch("/commitEffort", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify(samplePayload),
+                });
+                console.log(await response.json());
+              } catch (error) {
+                console.log(error);
+              }
+            });
+            $("#sub-success-toast").toast("show");
+          }
+        },
+      },
+    ],
+    select: {
+      style: "single",
+    },
+    columns: [
+      {
+        data: "Id",
+      },
+      {
+        data: "TxnDate",
+      },
+      {
+        data: "Hours",
+      },
+      {
+        data: "EmployeeRefVal",
+      },
+      {
+        data: "Person",
+      },
+      {
+        data: "Description",
+      },
+      {
+        data: "CustomerRefVal",
+      },
+      {
+        data: "Customer",
+      },
+      {
+        data: "HourlyRate",
+      },
+      {
+        data: "BillableStatus",
+      },
+    ],
+    rowid: "Id",
+    createdRow: function (row, data, index) {
+      if (validatedData.hasErrors) {
+        const { errors } = validatedData;
+        let tooltipHtmlTemplate = ``;
+        if (errors[index]) {
+          //console.log("[Errors]", errors[index]);
+          errors[index].forEach((element) => {
+            //console.log(element);
+            tooltipHtmlTemplate += `<div>${element}</div>`;
+          });
+          row.setAttribute("data-toggle", "tooltip");
+          row.setAttribute("data-html", "true");
+          row.setAttribute("title", tooltipHtmlTemplate);
+          row.classList.add("alert", "alert-danger");
+        }
+      }
+    },
   });
-  $("tbody").append(tableRowTemplate);
+  dataTable.column(0).visible(false);
+  dataTable.column(3).visible(false);
+  dataTable.column(6).visible(false);
+  $("#validate-toast").hide();
   $('[data-toggle="tooltip"]').tooltip();
 };
+
+$("#btn-edit").on("click", function (e) {
+  e.preventDefault();
+  const id = $("#row-id").val();
+  const editedRow = {
+    Id: parseInt(id),
+    TxnDate: $("#date").val(),
+    Person: $("#person").val(),
+    Customer: $("#customer").val(),
+    EmployeeRefVal: $("#employee-id").val(),
+    CustomerRefVal: $("#customer-id").val(),
+    Hours: $("#hours").val(),
+    Description: $("#budget").val(),
+    BillableStatus: $("#billable-status").val(),
+    HourlyRate: $("#hourlyRate").val(),
+  };
+  //payload = updateInArray(payload, editedRow)
+  dataTable.row(id).data(editedRow).invalidate().draw();
+  $editModal.modal("hide");
+});
 
 if (isAdvancedUpload) {
   $form.addClass("has-advanced-upload");
@@ -283,45 +406,6 @@ if (isAdvancedUpload) {
       showFiles(droppedFiles);
       parseXLSX(droppedFiles[0]);
     });
-  //   .on("submit", function (e) {
-  //     if ($form.hasClass("is-uploading")) return false;
-
-  //     $form.addClass("is-uploading").removeClass("is-error");
-
-  //     if (isAdvancedUpload) {
-  //       e.preventDefault();
-
-  //       var ajaxData = new FormData($form.get(0));
-
-  //       if (droppedFiles) {
-  //         $.each(droppedFiles, function (i, file) {
-  //           ajaxData.append($input.attr("name"), file);
-  //         });
-  //       }
-
-  //       $.ajax({
-  //         url: $form.attr("action"),
-  //         type: $form.attr("method"),
-  //         data: ajaxData,
-  //         dataType: "json",
-  //         cache: false,
-  //         contentType: false,
-  //         processData: false,
-  //         complete: function () {
-  //           $form.removeClass("is-uploading");
-  //         },
-  //         success: function (data) {
-  //           $form.addClass(data.success == true ? "is-success" : "is-error");
-  //           if (!data.success) $errorMsg.text(data.error);
-  //         },
-  //         error: function () {
-  //           // Log the error, show an alert, whatever works for you
-  //         },
-  //       });
-  //     } else {
-  //       // ajax for legacy browsers
-  //     }
-  //   });
 
   $input.on("change", function (e) {
     showFiles(e.target.files);
@@ -329,52 +413,3 @@ if (isAdvancedUpload) {
     parseXLSX(e.target.files[0]);
   });
 }
-
-// $('.table-add').on('click', 'i', () => {
-
-//     const $clone = $tableID.find('tbody tr').last().clone(true).removeClass('hide table-line');
-
-//     if ($tableID.find('tbody tr').length === 0) {
-
-//       $('tbody').append(newTr);
-//     }
-
-//     $tableID.find('table').append($clone);
-//   });
-
-$tableID.on("click", ".table-remove", function () {
-  $(this).parents("tr").detach();
-});
-
-// A few jQuery helpers for exporting only
-jQuery.fn.pop = [].pop;
-jQuery.fn.shift = [].shift;
-
-$BTN.on("click", () => {
-  const $rows = $tableID.find("tr:not(:hidden)");
-  const headers = [];
-  const data = [];
-
-  // Get the headers (add special header logic here)
-  $($rows.shift())
-    .find("th:not(:empty)")
-    .each(function () {
-      headers.push($(this).text().toLowerCase());
-    });
-
-  // Turn all existing rows into a loopable array
-  $rows.each(function () {
-    const $td = $(this).find("td");
-    const h = {};
-
-    // Use the headers from earlier to name our hash keys
-    headers.forEach((header, i) => {
-      h[header] = $td.eq(i).text();
-    });
-
-    data.push(h);
-  });
-
-  // Output the result
-  $EXPORT.text(JSON.stringify(data));
-});
