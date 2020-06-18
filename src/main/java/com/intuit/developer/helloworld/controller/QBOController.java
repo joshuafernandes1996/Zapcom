@@ -332,10 +332,141 @@ public class QBOController {
 
 	}
 
+	@ResponseBody
+	@RequestMapping(value = "/deleteTimeActivity/{Id}/{SyncToken}", method = RequestMethod.GET)
+	public String deleteTimeActivity(HttpSession session, @PathVariable String Id, @PathVariable String SyncToken) {
+		TimeActivity timeActivity = new TimeActivity();
+		System.out.println("SyncToken: "+ SyncToken);
+		String realmId = (String)session.getAttribute("realmId");
+		if (StringUtils.isEmpty(realmId)) {
+			return new JSONObject().put("response","No realm ID.  QBO calls only work if the accounting scope was passed!").toString();
+		}
+
+		timeActivity.setId(Id);
+		timeActivity.setSyncToken(SyncToken);
+		String accessToken = (String)session.getAttribute("access_token");
+		try {
+
+			//get DataService
+			DataService service = helper.getDataService(realmId, accessToken);
+
+			//Delete effort
+			TimeActivity deletedActivity = service.delete(timeActivity);
+
+			//return response back
+			return createResponse(deletedActivity);
+
+		}
+		/*
+		 * Handle 401 status code -
+		 * If a 401 response is received, refresh tokens should be used to get a new access token,
+		 * and the API call should be tried again.
+		 */
+		catch (InvalidTokenException e) {
+			logger.error("Error while calling executeQuery :: " + e.getMessage());
+
+			//refresh tokens
+			logger.info("received 401 during timeactivity call, refreshing tokens now");
+			OAuth2PlatformClient client  = factory.getOAuth2PlatformClient();
+			String refreshToken = (String)session.getAttribute("refresh_token");
+
+			try {
+				BearerTokenResponse bearerTokenResponse = client.refreshToken(refreshToken);
+				session.setAttribute("access_token", bearerTokenResponse.getAccessToken());
+				session.setAttribute("refresh_token", bearerTokenResponse.getRefreshToken());
+
+				//call customer info again using new tokens
+				logger.info("calling timeactivity using new tokens");
+				DataService service = helper.getDataService(realmId, accessToken);
+
+				//Delete effort
+				TimeActivity deletedActivity = service.delete(timeActivity);
+
+				//return response back
+				return createResponse(deletedActivity);
+
+			} catch (OAuthException e1) {
+				logger.error("Error while calling bearer token :: " + e.getMessage());
+				return new JSONObject().put("response",failureMsg).toString();
+			} catch (FMSException e1) {
+				logger.error("Error while calling company currency :: " + e.getMessage());
+				return new JSONObject().put("response",failureMsg).toString();
+			}
+
+		} catch (FMSException e) {
+			List<Error> list = e.getErrorList();
+			list.forEach(error -> logger.error("Error while calling executeQuery :: " + error.getMessage()));
+			return new JSONObject().put("response",failureMsg).toString();
+		}
+	}
+
+	@ResponseBody
+	@RequestMapping(value = "/getTimeActivityByDate", method = RequestMethod.GET)
+	public String findTimeActivityByTxnDate(HttpSession session, @RequestParam String TxnDate) {
+		System.out.println("TxnDate: "+ TxnDate);
+		String realmId = (String)session.getAttribute("realmId");
+		if (StringUtils.isEmpty(realmId)) {
+			return new JSONObject().put("response","No realm ID.  QBO calls only work if the accounting scope was passed!").toString();
+		}
+		String accessToken = (String)session.getAttribute("access_token");
+		try {
+
+			//get DataService
+			DataService service = helper.getDataService(realmId, accessToken);
+
+			// get timeactivity by TxnDate
+			String sql = "select * from timeactivity where TxnDate ='" + TxnDate + "'";
+			QueryResult queryResult = service.executeQuery(sql);
+			return timeActProcessResponse(failureMsg, queryResult);
+
+		}
+		/*
+		 * Handle 401 status code -
+		 * If a 401 response is received, refresh tokens should be used to get a new access token,
+		 * and the API call should be tried again.
+		 */
+		catch (InvalidTokenException e) {
+			logger.error("Error while calling executeQuery :: " + e.getMessage());
+
+			//refresh tokens
+			logger.info("received 401 during timeactivity call, refreshing tokens now");
+			OAuth2PlatformClient client  = factory.getOAuth2PlatformClient();
+			String refreshToken = (String)session.getAttribute("refresh_token");
+
+			try {
+				BearerTokenResponse bearerTokenResponse = client.refreshToken(refreshToken);
+				session.setAttribute("access_token", bearerTokenResponse.getAccessToken());
+				session.setAttribute("refresh_token", bearerTokenResponse.getRefreshToken());
+
+				//call customer info again using new tokens
+				logger.info("calling timeactivity using new tokens");
+				DataService service = helper.getDataService(realmId, accessToken);
+
+				// get all customerinfo
+				String sql = "select * from timeactivity where TxnDate ='" + TxnDate + "'";
+				QueryResult queryResult = service.executeQuery(sql);
+				return timeActProcessResponse(failureMsg, queryResult);
+
+			} catch (OAuthException e1) {
+				logger.error("Error while calling bearer token :: " + e.getMessage());
+				return new JSONObject().put("response",failureMsg).toString();
+			} catch (FMSException e1) {
+				logger.error("Error while calling company currency :: " + e.getMessage());
+				return new JSONObject().put("response",failureMsg).toString();
+			}
+
+		} catch (FMSException e) {
+			List<Error> list = e.getErrorList();
+			list.forEach(error -> logger.error("Error while calling executeQuery :: " + error.getMessage()));
+			return new JSONObject().put("response",failureMsg).toString();
+		}
+	}
+
 	/**
 	 * Sample QBO API call using OAuth2 tokens
 	 *
 	 * @param session
+	 * @param timeActivityData
 	 * @return
 	 */
 	@ResponseBody
@@ -343,11 +474,11 @@ public class QBOController {
 	public String commitEffortForEmployee(HttpSession session, @RequestBody TimeActivityRequestBody timeActivityData) {
 		System.out.println("Request body "+createResponse(timeActivityData));
 		TimeActivity timeActivity = new TimeActivity();
-		/*if (BillableStatus.equalsIgnoreCase("BILLABLE")) {
+		if (timeActivityData.getBillableStatus().equalsIgnoreCase("BILLABLE")) {
 			timeActivity.setBillableStatus(BillableStatusEnum.BILLABLE);
 		} else {
 			timeActivity.setBillableStatus(BillableStatusEnum.NOT_BILLABLE);
-		}*/
+		}
 
 		ReferenceType r = new ReferenceType();
 		r.setValue(timeActivityData.getCustomerRefVal());
@@ -355,6 +486,7 @@ public class QBOController {
 		ReferenceType r1 = new ReferenceType();
 		r1.setValue(timeActivityData.getEmployeeRefVal());
 		timeActivity.setEmployeeRef(r1);
+		logger.info("Hourly Rate: "+ timeActivityData.getHourlyRate());
 		BigDecimal b = new BigDecimal(timeActivityData.getHourlyRate());
 		timeActivity.setHourlyRate(b);
 		Integer i = Integer.valueOf(timeActivityData.getHours());
@@ -471,7 +603,24 @@ public class QBOController {
 		return failureMsg;
 	}
 
+	private String timeActProcessResponse(String failureMsg, QueryResult queryResult) {
+		if (!queryResult.getEntities().isEmpty() && queryResult.getEntities().size() > 0) {
+			//CompanyInfo companyInfo = (CompanyInfo) queryResult.getEntities().get(0);
+			//logger.info("Companyinfo -> CompanyName: " + companyInfo.getCompanyName());
+			List<TimeActivity> timeActivity = (List<TimeActivity>) queryResult.getEntities();
+			logger.info("TimeActivity -> TimeActivity: " + timeActivity);
+			ObjectMapper mapper = new ObjectMapper();
+			try {
+				String jsonInString = mapper.writeValueAsString(timeActivity);
+				return jsonInString;
+			} catch (JsonProcessingException e) {
+				logger.error("Exception while getting timesheet info ", e);
+				return new JSONObject().put("response",failureMsg).toString();
+			}
 
+		}
+		return failureMsg;
+	}
 
     
 }

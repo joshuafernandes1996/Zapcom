@@ -7,7 +7,7 @@ public class TimeActivityRequestBody {
     private String Hours;
     private String Description;
     private String BillableStatus;
-    private String HourlyRate;
+    private String hourlyRate;
 
     public TimeActivityRequestBody() {
         super();
@@ -62,10 +62,10 @@ public class TimeActivityRequestBody {
     }
 
     public String getHourlyRate() {
-        return HourlyRate;
+        return hourlyRate;
     }
 
-    public void setHourlyRate(String hourlyRate) {
-        HourlyRate = hourlyRate;
+    public void setHourlyRate(String _hourlyRate) {
+        hourlyRate = _hourlyRate;
     }
 }
