@@ -414,6 +414,9 @@ public class QBOController {
 			//get DataService
 			DataService service = helper.getDataService(realmId, accessToken);
 
+			//Get Customer Ref ID
+			String customerSQL = "select Id from Customer where CompanyName = '";
+
 			// get timeactivity by TxnDate
 			String sql = "select * from timeactivity where TxnDate ='" + TxnDate + "'";
 			QueryResult queryResult = service.executeQuery(sql);
