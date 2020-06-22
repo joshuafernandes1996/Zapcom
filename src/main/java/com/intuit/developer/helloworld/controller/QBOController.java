@@ -402,7 +402,7 @@ public class QBOController {
 
 	@ResponseBody
 	@RequestMapping(value = "/getTimeActivityByDate", method = RequestMethod.GET)
-	public String findTimeActivityByTxnDate(HttpSession session, @RequestParam String TxnDate) {
+	public String findTimeActivityByTxnDate(HttpSession session, @RequestParam String TxnDate, @RequestParam String CustomerId) {
 		System.out.println("TxnDate: "+ TxnDate);
 		String realmId = (String)session.getAttribute("realmId");
 		if (StringUtils.isEmpty(realmId)) {
@@ -414,11 +414,8 @@ public class QBOController {
 			//get DataService
 			DataService service = helper.getDataService(realmId, accessToken);
 
-			//Get Customer Ref ID
-			String customerSQL = "select Id from Customer where CompanyName = '";
-
 			// get timeactivity by TxnDate
-			String sql = "select * from timeactivity where TxnDate ='" + TxnDate + "'";
+			String sql = "select * from timeactivity where TxnDate ='" + TxnDate + "' and CustomerRef ='" + CustomerId + "'";
 			QueryResult queryResult = service.executeQuery(sql);
 			return timeActProcessResponse(failureMsg, queryResult);
 
@@ -535,6 +532,36 @@ public class QBOController {
 	}
 
 	/**
+	 * Get's and stores all Customer Names and thier ID's
+	 *
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/getCustomers", method = RequestMethod.GET, produces = "application/json")
+	public String getCustomers(HttpSession session) {
+		String realmId = (String)session.getAttribute("realmId");
+		if (StringUtils.isEmpty(realmId)) {
+			return new JSONObject().put("response","No realm ID.  QBO calls only work if the accounting scope was passed!").toString();
+		}
+		String accessToken = (String)session.getAttribute("access_token");
+		try {
+
+			//get DataService
+			DataService service = helper.getDataService(realmId, accessToken);
+
+			//Get Customer
+			String customerSQL = "select Id, CompanyName from Customer";
+
+			QueryResult queryResult = service.executeQuery(customerSQL);
+			return customerResponse(failureMsg, queryResult);
+		} catch (FMSException e) {
+			e.printStackTrace();
+		}
+
+		return new JSONObject().put("response","Failed").toString();
+	}
+
+	/**
 	 * Map object to json string
 	 * @param entity
 	 * @return
@@ -623,6 +650,23 @@ public class QBOController {
 
 		}
 		return failureMsg;
+	}
+
+	private String customerResponse(String failureMsg, QueryResult queryResult) {
+		if (!queryResult.getEntities().isEmpty() && queryResult.getEntities().size() > 0) {
+			List<Customer> customers = (List<Customer>) queryResult.getEntities();
+			logger.info("customers -> customers: " + customers);
+			ObjectMapper mapper = new ObjectMapper();
+			try {
+				String jsonInString = mapper.writeValueAsString(customers);
+				return jsonInString;
+			} catch (JsonProcessingException e) {
+				logger.error("Exception while getting customers ", e);
+				return new JSONObject().put("response",failureMsg).toString();
+			}
+
+		}
+		return new JSONObject().put("response",failureMsg).toString();
 	}
 
     

@@ -5,6 +5,7 @@ const $tableID = $("#table");
 const $BTN = $("#export-btn");
 const $EXPORT = $("#export");
 const $editModal = $("#edit-modal");
+const $selectBtn = $("#customerSelect");
 const toastOptions = {
   animation: true,
   autohide: true,
@@ -15,6 +16,7 @@ $toast.toast();
 let excelData = [];
 let tableRows;
 let dataTable;
+let selectedCustomerId = "";
 
 async function asyncForEach(array, callback) {
   for (let index = 0; index < array.length; index++) {
@@ -81,7 +83,7 @@ const updateInArray = function (array, element) {
 const deleteDataFromQuickBooks = async (dates, empDate) => {
   dates.forEach(async (element) => {
     const response = await fetch(
-      `/getTimeActivityByDate?TxnDate=${element.toString()}`
+      `/getTimeActivityByDate?TxnDate=${element.toString()}&CustomerId=${selectedCustomerId}`
     );
     const data = await response.json();
     console.log("[Timesheet by date]", data);
@@ -499,3 +501,48 @@ if (isAdvancedUpload) {
     parseXLSX(e.target.files[0]);
   });
 }
+
+$(document).ready(async function(){
+$("#progressLoader").addClass("showElement").removeClass("hideElement");
+$selectBtn.addClass("hideElement").removeClass("custom-select");
+
+ try {
+      const response = await fetch("/getCustomers");
+      const data = await response.json();
+      let reducedData = [];
+      data.map((item)=>{
+        reducedData.push({id: item.id,companyName:item.companyName});
+      })
+      console.log("---DATA---");
+      console.log(reducedData);
+      $selectBtn.append(
+        reducedData.map(function(v) {
+        if(v.companyName !== null){
+        return $('<option/>', {
+                    value: v.id,
+                    text: v.companyName
+                  })
+        }
+        })
+      ).change(function() {
+        console.log(this.value);
+      });
+      $selectBtn.removeClass("hideElement").addClass("custom-select");
+      $("#progressLoader").addClass("hideElement").removeClass("showElement");
+
+    } catch (error) {
+      console.log(error);
+      $selectBtn.removeClass("hideElement").addClass("custom-select");
+      $("#progressLoader").addClass("hideElement").removeClass("showElement");
+    }
+});
+
+$selectBtn.on("change", function (e) {
+  console.log( e.target.value);
+  if(e.target.value === ""){
+      $("#dropBox").addClass("hideDropBox");
+  }else{
+    $("#dropBox").removeClass("hideDropBox");
+    selectedCustomerId = e.target.value;
+  }
+});
