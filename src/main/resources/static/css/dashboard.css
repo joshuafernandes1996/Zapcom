@@ -117,6 +117,32 @@ body {
 }
 
 .toast-container {
-position: relative;
-min-height: 500px;
+  position: fixed; 
+  top: 0; 
+  right: 0;
+}
+
+.select-customer {
+  background-color: #2b5588;
+  color: #fff;
+  padding: 0.5em;
+  border-radius: 4px;
+}
+
+.hideElement{
+    display: none;
+}
+
+.showElement{
+    display: block;
+}
+
+.hideDropBox{
+    pointer-events: none;
+    opacity: .5;
+}
+
+.showDropBox{
+    pointer-events: all;
+    opacity: 1;
 }
