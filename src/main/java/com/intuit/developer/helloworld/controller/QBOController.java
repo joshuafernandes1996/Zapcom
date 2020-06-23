@@ -619,7 +619,8 @@ public class QBOController {
 			}
 
 		}
-		return failureMsg;
+		logger.error("Failure Msg" + failureMsg);
+		return new JSONObject().put("error", failureMsg).toString();
 	}
 
     

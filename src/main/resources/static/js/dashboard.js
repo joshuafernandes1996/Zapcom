@@ -10,8 +10,7 @@ const toastOptions = {
   autohide: true,
   delay: 2000,
 };
-const $toast = $(".toast");
-$toast.toast();
+
 let excelData = [];
 let tableRows;
 let dataTable;
@@ -49,6 +48,55 @@ async function asyncForEach(array, callback) {
 //   return `${date_info.getMonth()}/${date_info.getDate()}/${date_info.getFullYear()}`;
 // }
 
+const toggleBouncyBar = () => {
+  const bouncyBar = document.getElementById("custom-loader");
+  let bouncyBarStyle = bouncyBar.style.display;
+  console.log(bouncyBarStyle)
+  if (!bouncyBarStyle) {
+    bouncyBar.style.display = "block";
+  } else if (bouncyBarStyle === "block") {
+    bouncyBar.style.display = "none";
+  }
+};
+
+const toggleToast = (data, autohide) => {
+  const toastContainer = $("#toast-container");
+  if(toastContainer.find('div').length > 0) {
+    toastContainer.empty()
+  }
+  let template = ``;
+  if (data.isError) {
+    template = `<div class="toast" data-autohide="${autohide}" data-delay="5000">
+    <div class="toast-header error-toast">
+      <strong class="mr-auto">Employee TS</strong>
+      <small>Just now</small>
+      <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+        <span style="color:white" aria-hidden="true">&times;</span>
+      </button>
+    </div>
+    <div class="toast-body">
+      ${data.msg}
+    </div>
+  </div>`;
+  } else {
+    template = `<div class="toast" data-autohide="${autohide}" data-delay="5000">
+    <div class="toast-header info-toast">
+      <strong class="mr-auto">Employee TS</strong>
+      <small>Just now</small>
+      <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+        <span style="color:white" aria-hidden="true">&times;</span>
+      </button>
+    </div>
+    <div class="toast-body">
+      ${data.msg}
+    </div>
+  </div>`;
+  }
+  toastContainer.append(template);
+  const $toast = $(".toast");
+  $toast.toast("show");
+};
+
 const excelDatetoJSDate = (serial, seperator) => {
   const pad = (n) => {
     return n < 10 ? "0" + n : n;
@@ -79,36 +127,41 @@ const updateInArray = function (array, element) {
 };
 
 const deleteDataFromQuickBooks = async (dates, empDate) => {
-  dates.forEach(async (element) => {
-    const response = await fetch(
-      `/getTimeActivityByDate?TxnDate=${element.toString()}`
-    );
-    const data = await response.json();
-    console.log("[Timesheet by date]", data);
+  try {
+    await asyncForEach(Array.from(dates), async (element) => {
+      const response = await fetch(
+        `/getTimeActivityByDate?TxnDate=${element.toString()}`
+      );
+      const data = await response.json();
+      if (data.error === "Failed") {
+        return;
+      }
+      console.log(`[Timesheet by date: ${element}]`, data);
 
-    const filteredData = data.filter((row) => {
-      //return row.employeeRef.value == empDate[element]
-      return empDate.find((value) => value[element] === row.employeeRef.value);
-    });
-    console.log("[Filtered timesheet]", filteredData);
+      const filteredData = data.filter((row) => {
+        //return row.employeeRef.value == empDate[element]
+        return empDate.find(
+          (value) => value[element] === row.employeeRef.value
+        );
+      });
+      console.log("[Filtered timesheet]", filteredData);
 
-    filteredData.forEach(async (element) => {
-      try {
+      await asyncForEach(filteredData, async (element) => {
         const response = await fetch(
           `/deleteTimeActivity/${element.id.toString()}/${element.syncToken}`
         );
-        const data = response.json();
-      } catch (error) {
-        throw error;
-      }
+        const data = await response.json();
+      });
     });
-  });
+  } catch (error) {
+    throw error;
+  }
 };
 
 const validateSheet = async function (sheet, isFirst) {
   let customData = {};
-  $("#validate-toast").toast("show");
-
+  //$("#validate-toast").toast("show");
+  toggleToast({ msg: "Validating Data.. Please Wait" }, true);
   //Set of employees
   console.log("Validate Sheets");
   let employeeNames = new Set([]);
@@ -269,6 +322,7 @@ const parseSheets = function (workbook, sheets) {
 
 const parseXLSX = function (file) {
   console.log("Here");
+  toggleBouncyBar();
   let reader = new FileReader();
   reader.addEventListener("load", async (event) => {
     const fileData = event.target.result;
@@ -336,16 +390,26 @@ const populateTable = function (validatedData) {
         },
         {
           text: "Submit",
+          attr: {
+            id: "btn-submit",
+          },
           action: async function () {
+            document.getElementById("btn-submit").disabled = true;
+            toggleBouncyBar();
             const tableData = dataTable.rows().data().toArray();
             console.log(tableData);
             const data = await validateSheet(tableData);
 
             if (data.hasErrors) {
-              $("#sub-error-toast").toast("show");
+              //$("#sub-error-toast").toast("show");
+              toggleToast({
+                isError: true,
+                msg:
+                  "Submit Failed. There seems to be some conflicts in your data.",
+              }, true);
               dataTable.clear().rows.add(data.payload).draw();
             } else {
-              data.payload.forEach(async (element) => {
+              await asyncForEach(data, async (element) => {
                 const {
                   TxnDate,
                   EmployeeRefVal,
@@ -378,7 +442,9 @@ const populateTable = function (validatedData) {
                   console.log(error);
                 }
               });
-              $("#sub-success-toast").toast("show");
+              toggleBouncyBar();
+              //$("#sub-success-toast").toast("show");
+              toggleToast({msg: "Successfully pushed data to QuickBooks"}, true)
             }
           },
         },
@@ -441,7 +507,8 @@ const populateTable = function (validatedData) {
   dataTable.column(0).visible(false);
   dataTable.column(3).visible(false);
   dataTable.column(6).visible(false);
-  $("#validate-toast").hide();
+  //$("#validate-toast").hide();
+  toggleBouncyBar();
   $('[data-toggle="tooltip"]').tooltip();
 
   $("#btn-edit").on("click", function (e) {
