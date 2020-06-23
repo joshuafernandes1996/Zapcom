@@ -8,6 +8,10 @@ buildscript {
     }
 }
 
+plugins {
+    id 'war'
+}
+
 apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
@@ -41,6 +45,8 @@ dependencies {
     compileOnly("org.springframework.boot:spring-boot-devtools")
     compileOnly 'org.projectlombok:lombok:1.18.8'
     annotationProcessor 'org.projectlombok:lombok:1.18.8'
+    implementation 'org.glassfish.jaxb:jaxb-runtime'
+    providedRuntime('org.springframework.boot:spring-boot-starter-tomcat')
     //implementation "org.springframework.boot:spring-boot-starter-security"
 }
 

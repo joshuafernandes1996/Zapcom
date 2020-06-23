@@ -169,3 +169,28 @@ body {
   background-color: #454553;
   color: white;
 }
+
+.select-customer {
+  background-color: #2b5588;
+  color: #fff;
+  padding: 0.5em;
+  border-radius: 4px;
+}
+
+.hideElement{
+    display: none;
+}
+
+.showElement{
+    display: block;
+}
+
+.hideDropBox{
+    pointer-events: none;
+    opacity: .5;
+}
+
+.showDropBox{
+    pointer-events: all;
+    opacity: 1;
+}
