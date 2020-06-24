@@ -53,6 +53,7 @@ async function asyncForEach(array, callback) {
 const toggleBouncyBar = () => {
   const bouncyBar = document.getElementById("custom-loader");
   let bouncyBarStyle = bouncyBar.style.visibility;
+  console.log(bouncyBarStyle)
   bouncyBar.style.visibility =
     bouncyBarStyle === "visible" ? "hidden" : "visible";
 };
@@ -248,7 +249,12 @@ const validateSheet = async function (sheet, isFirst) {
       const response = await fetch("/getEmployeeInfo?eachEmp=" + eachEmp);
       const data = await response.json();
       //console.log(data);
-      employees["" + eachEmp] = data === "failed" ? data : data.id;
+      //employees["" + eachEmp] = data === "failed" ? data : data.id;
+      if(data === "failed") {
+        toggleToast({isError: true, msg: `Employee: ${eachEmp} doesn't exist in quickbooks`}, true)
+      } else {
+        employees["" + eachEmp] = data.id
+      }
     } catch (error) {
       console.log(error);
     }
@@ -464,8 +470,8 @@ const populateTable = function (validatedData) {
             id: "btn-submit",
           },
           action: async function () {
-            document.getElementById("btn-submit").disabled = true;
-            toggleBouncyBar();
+            
+            
             const tableData = dataTable.rows().data().toArray();
             console.log(tableData);
             const data = await validateSheet(tableData);
@@ -482,6 +488,8 @@ const populateTable = function (validatedData) {
               );
               dataTable.clear().rows.add(data.payload).draw();
             } else {
+              toggleBouncyBar();
+              document.getElementById("btn-submit").disabled = true;
               await asyncForEach(data.payload, async (element) => {
                 const {
                   TxnDate,
