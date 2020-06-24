@@ -125,7 +125,7 @@ body {
 }
 
 #custom-loader {
-  display: none;
+  visibility: hidden;
 }
 
 .loader {
@@ -171,11 +171,10 @@ body {
 }
 
 .select-customer {
-  background-color: #2b5588;
-  color: #fff;
-  padding: 0.5em;
-  border-radius: 4px;
+  width: 50%;
+  justify-content:space-between;
 }
+
 
 .hideElement{
     display: none;

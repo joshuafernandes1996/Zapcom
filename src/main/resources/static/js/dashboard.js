@@ -12,7 +12,7 @@ const toastOptions = {
   delay: 2000,
 };
 
-let excelData = [];
+let lookUpTableData = [];
 let tableRows;
 let dataTable;
 let selectedCustomerId = "";
@@ -52,19 +52,67 @@ async function asyncForEach(array, callback) {
 
 const toggleBouncyBar = () => {
   const bouncyBar = document.getElementById("custom-loader");
-  let bouncyBarStyle = bouncyBar.style.display;
-  console.log(bouncyBarStyle)
-  if (!bouncyBarStyle) {
-    bouncyBar.style.display = "block";
-  } else if (bouncyBarStyle === "block") {
-    bouncyBar.style.display = "none";
+  let bouncyBarStyle = bouncyBar.style.visibility;
+  bouncyBar.style.visibility =
+    bouncyBarStyle === "visible" ? "hidden" : "visible";
+};
+
+const lookUpTableFilter = (lookUpTable, sheetRow) => {
+  const filter = lookUpTable.filter((row) => {
+    return row.NblyName === sheetRow.Person;
+  });
+  return filter[0];
+};
+
+const lookUpTableMapping = (sheet, lookUpTable) => {
+  const sheetCopy = [...sheet];
+  //console.log("sheetCopy", sheetCopy)
+  //console.log("look up table", lookUpTable)
+  return sheetCopy.map((element) => {
+    const filteredRateCard = lookUpTableFilter(lookUpTable, element);
+    //console.log(filteredRateCard)
+    return {
+      ...element,
+      ...{
+        Person: filteredRateCard.QBOName,
+        HourlyRate: filteredRateCard.RateCard,
+      },
+    };
+  });
+};
+
+const filterFiles = (array, filterRegex) => {
+  const regex = new RegExp(filterRegex);
+  const filter = array.filter((row) => {
+    return regex.test(row.name);
+  });
+  return filter[0];
+};
+
+const filterExcelFiles = async (fileList) => {
+  const files = [...fileList];
+  try {
+    const lookUpTablefile = await fileReader(
+      filterFiles(files, /LookUpTable*.*(.xlsx)$/i)
+    );
+    if (!lookUpTablefile) {
+      toggleToast({ isError: true, msg: "LookUp table not uploaded" }, true);
+      return;
+    }
+    parseXLSX(lookUpTablefile, true, 0);
+    const timesheetFile = await fileReader(
+      filterFiles(files, /TimeExplorer*.*(.xlsx)$/i)
+    );
+    parseXLSX(timesheetFile, false, 0);
+  } catch (error) {
+    toggleToast({ isError: true, msg: error.msg }, true);
   }
 };
 
 const toggleToast = (data, autohide) => {
   const toastContainer = $("#toast-container");
-  if(toastContainer.find('div').length > 0) {
-    toastContainer.empty()
+  if (toastContainer.find("div").length > 0) {
+    toastContainer.empty();
   }
   let template = ``;
   if (data.isError) {
@@ -119,7 +167,14 @@ const isAdvancedUpload = (function () {
 })();
 
 const showFiles = function (files) {
-  $label.text(files[0].name);
+  $label.text(
+    files.length > 1
+      ? ($input.attr("data-multiple-caption") || "").replace(
+          "{count}",
+          files.length
+        )
+      : files[0].name
+  );
 };
 
 const updateInArray = function (array, element) {
@@ -143,10 +198,12 @@ const deleteDataFromQuickBooks = async (dates, empDate) => {
       const filteredData = data.filter((row) => {
         //return row.employeeRef.value == empDate[element]
         return empDate.find(
-          (value) => value[element] === row.employeeRef.value
+          (value) =>
+            value[element] === row.employeeRef.value &&
+            row.customerRef.value === selectedCustomerId
         );
       });
-      console.log("[Filtered timesheet]", filteredData);
+      //console.log("[Filtered timesheet]", filteredData);
 
       await asyncForEach(filteredData, async (element) => {
         const response = await fetch(
@@ -161,6 +218,7 @@ const deleteDataFromQuickBooks = async (dates, empDate) => {
 };
 
 const validateSheet = async function (sheet, isFirst) {
+  toggleBouncyBar();
   let customData = {};
   //$("#validate-toast").toast("show");
   toggleToast({ msg: "Validating Data.. Please Wait" }, true);
@@ -171,12 +229,6 @@ const validateSheet = async function (sheet, isFirst) {
     employeeNames.add(eachRow.Person);
   });
 
-  //Set of customers
-  let customerNames = new Set([]);
-  sheet.forEach((eachRow) => {
-    customerNames.add(eachRow.Customer);
-  });
-
   //Set of dates
   let timeSheetDates = new Set([]);
   sheet.forEach((eachRow) => {
@@ -185,11 +237,10 @@ const validateSheet = async function (sheet, isFirst) {
 
   //console.log("[Employee Names]", employeeNames);
   //console.log("[Customer Names]", customerNames);
-  console.log("[Timesheet dates]", timeSheetDates);
+  //console.log("[Timesheet dates]", timeSheetDates);
 
   // Resolve Employees 1st, then Customers, and then finally the Efforts
   let employees = {};
-  let customers = {};
   let validateEmployeeEffort = {};
 
   await asyncForEach(Array.from(employeeNames), async (eachEmp) => {
@@ -203,18 +254,7 @@ const validateSheet = async function (sheet, isFirst) {
     }
   });
 
-  await asyncForEach(Array.from(customerNames), async (eachCus) => {
-    try {
-      const response = await fetch("/getCustomersInfo?eachCus=" + eachCus);
-      const data = await response.json();
-      //console.log(data);
-      customers["" + eachCus] = data === "failed" ? data : data.id;
-    } catch (error) {
-      console.log(error);
-    }
-  });
-
-  console.log("[Employees]", employees);
+  //console.log("[Employees]", employees);
   //console.log("[Customers]", customers);
 
   // let empDates = new Set([]);
@@ -267,8 +307,7 @@ const validateSheet = async function (sheet, isFirst) {
     }
     const empName = tsRow.Person.toString();
     const empID = employees[empName].toString();
-    const cusName = tsRow.Customer.toString();
-    const cusID = customers[cusName].toString();
+    const cusID = selectedCustomerId.toString();
     const effort = tsRow.Hours.toString();
     const hlyRate = tsRow.HourlyRate.toString();
     const desc = tsRow.Budget
@@ -281,7 +320,6 @@ const validateSheet = async function (sheet, isFirst) {
       EmployeeRefVal: empID,
       Person: empName,
       CustomerRefVal: cusID,
-      Customer: cusName,
       Hours: effort,
       Description: desc,
       BillableStatus: billableStatus,
@@ -315,28 +353,60 @@ const validateSheet = async function (sheet, isFirst) {
 const parseSheets = function (workbook, sheets) {
   return sheets.map((element) => {
     const roa = XLSX.utils.sheet_to_json(workbook.Sheets[element]);
-    console.log(roa);
+    //console.log(roa);
     if (roa.length > 0) {
       return roa;
     }
   });
 };
 
-const parseXLSX = function (file) {
-  console.log("Here");
-  toggleBouncyBar();
-  let reader = new FileReader();
-  reader.addEventListener("load", async (event) => {
-    const fileData = event.target.result;
-    const workBook = XLSX.read(fileData, { type: "binary" });
-    const sheetNameList = workBook.SheetNames;
-    console.log("[Sheet Names]", sheetNameList);
-    excelData = parseSheets(workBook, sheetNameList);
-    console.log("[Excel Data]", excelData);
-    const validatedData = await validateSheet(excelData[0], true);
+const parseXLSX = async (file, isLookup, idx) => {
+  const workBook = XLSX.read(file, { type: "binary" });
+  const sheetNameList = workBook.SheetNames;
+  if (isLookup) {
+    lookUpTableData = parseSheets(workBook, sheetNameList)[idx];
+  } else {
+    const excelData = parseSheets(workBook, sheetNameList);
+    //console.log(excelData[idx])
+    const mappedData = lookUpTableMapping(excelData[idx], lookUpTableData);
+    //console.log("[Mapped Data]", mappedData)
+    const validatedData = await validateSheet(mappedData, true);
     populateTable(validatedData);
+  }
+};
+
+const fileReader = (file) => {
+  // console.log("Here");
+  // //toggleBouncyBar();
+  // reader.addEventListener("load", async (event) => {
+  //   const fileData = event.target.result;
+  //   const workBook = XLSX.read(fileData, { type: "binary" });
+  //   const sheetNameList = workBook.SheetNames;
+  //   console.log("[Sheet Names]", sheetNameList);
+  //   if(file.name === "LookUpTable.xlsx") {
+  //     lookUpTableData = parseSheets(workBook, sheetNameList)
+  //   } else {
+  //     excelData = parseSheets(workBook, sheetNameList);
+  //     console.log("[Excel Data]", excelData);
+  //     const validatedData = await validateSheet(excelData[idx], true);
+  //     populateTable(validatedData);
+  //   }
+  // });
+  // reader.readAsBinaryString(file);
+
+  const temporaryFileReader = new FileReader();
+
+  return new Promise((resolve, reject) => {
+    temporaryFileReader.onerror = () => {
+      temporaryFileReader.abort();
+      reject(new DOMException("Problem parsing input file."));
+    };
+
+    temporaryFileReader.onload = () => {
+      resolve(temporaryFileReader.result);
+    };
+    temporaryFileReader.readAsBinaryString(file);
   });
-  reader.readAsBinaryString(file);
 };
 
 const populateTable = function (validatedData) {
@@ -358,12 +428,11 @@ const populateTable = function (validatedData) {
               .rows({ selected: true })
               .data()
               .toArray();
-            console.log(selectedRow);
+            //console.log(selectedRow);
             const {
               Id,
               TxnDate,
               Person,
-              Customer,
               EmployeeRefVal,
               CustomerRefVal,
               Hours,
@@ -375,7 +444,6 @@ const populateTable = function (validatedData) {
             $("#hours").val(Hours);
             $("#person").val(Person);
             $("#budget").val(Description);
-            $("#customer").val(Customer);
             $("#hourlyRate").val(HourlyRate);
             $("#billable-status").val(BillableStatus);
             $("#row-id").val(Id);
@@ -404,14 +472,17 @@ const populateTable = function (validatedData) {
 
             if (data.hasErrors) {
               //$("#sub-error-toast").toast("show");
-              toggleToast({
-                isError: true,
-                msg:
-                  "Submit Failed. There seems to be some conflicts in your data.",
-              }, true);
+              toggleToast(
+                {
+                  isError: true,
+                  msg:
+                    "Submit Failed. There seems to be some conflicts in your data.",
+                },
+                true
+              );
               dataTable.clear().rows.add(data.payload).draw();
             } else {
-              await asyncForEach(data, async (element) => {
+              await asyncForEach(data.payload, async (element) => {
                 const {
                   TxnDate,
                   EmployeeRefVal,
@@ -430,7 +501,7 @@ const populateTable = function (validatedData) {
                   billableStatus: BillableStatus,
                   hourlyRate: HourlyRate,
                 };
-                console.log("[Payload]", payload);
+                //console.log("[Payload]", payload);
                 try {
                   const response = await fetch("/commitEffort", {
                     method: "POST",
@@ -446,7 +517,10 @@ const populateTable = function (validatedData) {
               });
               toggleBouncyBar();
               //$("#sub-success-toast").toast("show");
-              toggleToast({msg: "Successfully pushed data to QuickBooks"}, true)
+              toggleToast(
+                { msg: "Successfully pushed data to QuickBooks" },
+                true
+              );
             }
           },
         },
@@ -475,9 +549,6 @@ const populateTable = function (validatedData) {
         },
         {
           data: "CustomerRefVal",
-        },
-        {
-          data: "Customer",
         },
         {
           data: "HourlyRate",
@@ -520,7 +591,6 @@ const populateTable = function (validatedData) {
       Id: parseInt(id),
       TxnDate: $("#date").val(),
       Person: $("#person").val(),
-      Customer: $("#customer").val(),
       EmployeeRefVal: $("#employee-id").val(),
       CustomerRefVal: $("#customer-id").val(),
       Hours: $("#hours").val(),
@@ -559,56 +629,76 @@ if (isAdvancedUpload) {
       droppedFiles = e.originalEvent.dataTransfer.files;
       //console.log(droppedFiles);
       showFiles(droppedFiles);
-      parseXLSX(droppedFiles[0]);
+      //parseXLSX(droppedFiles[0]);
+      if (droppedFiles.length == 2) {
+        console.log("2 files selected", droppedFiles);
+        filterExcelFiles(droppedFiles);
+      } else {
+        toggleToast({ isError: true, msg: "Upload 2 excel files" }, true);
+      }
     });
 
   $input.on("change", function (e) {
+    const files = e.target.files;
     showFiles(e.target.files);
-    console.log(e.target.files);
-    parseXLSX(e.target.files[0]);
+    //console.log(e.target.files);
+    //parseXLSX(e.target.files[0]);
+    if (files.length == 2) {
+      console.log("2 files selected", files);
+      filterExcelFiles(files);
+    } else {
+      toggleToast({ isError: true, msg: "Upload 2 excel files" }, true);
+    }
   });
 }
 
-$(document).ready(async function(){
-$("#progressLoader").addClass("showElement").removeClass("hideElement");
-$selectBtn.addClass("hideElement").removeClass("custom-select");
+$(document).ready(async function () {
+  //$("#progressLoader").addClass("showElement").removeClass("hideElement");
+  $selectBtn.attr("disabled", true);
+  toggleBouncyBar();
+  //$selectBtn.addClass("hideElement").removeClass("custom-select");
 
- try {
-      const response = await fetch("/getCustomers");
-      const data = await response.json();
-      let reducedData = [];
-      data.map((item)=>{
-        reducedData.push({id: item.id,companyName:item.companyName});
-      })
-      console.log("---DATA---");
-      console.log(reducedData);
-      $selectBtn.append(
-        reducedData.map(function(v) {
-        if(v.companyName !== null){
-        return $('<option/>', {
-                    value: v.id,
-                    text: v.companyName
-                  })
-        }
+  try {
+    toggleToast({ msg: "Fetching list of customers" }, true);
+    const response = await fetch("/getCustomers");
+    const data = await response.json();
+    let reducedData = [];
+    data.map((item) => {
+      reducedData.push({ id: item.id, companyName: item.companyName });
+    });
+    console.log("---DATA---");
+    console.log(reducedData);
+    $selectBtn
+      .append(
+        reducedData.map(function (v) {
+          if (v.companyName !== null) {
+            return $("<option/>", {
+              value: v.id,
+              text: v.companyName,
+            });
+          }
         })
-      ).change(function() {
+      )
+      .change(function () {
         console.log(this.value);
       });
-      $selectBtn.removeClass("hideElement").addClass("custom-select");
-      $("#progressLoader").addClass("hideElement").removeClass("showElement");
-
-    } catch (error) {
-      console.log(error);
-      $selectBtn.removeClass("hideElement").addClass("custom-select");
-      $("#progressLoader").addClass("hideElement").removeClass("showElement");
-    }
+    $selectBtn.attr("disabled", false);
+    //$selectBtn.removeClass("hideElement").addClass("custom-select");
+    //$("#progressLoader").addClass("hideElement").removeClass("showElement");
+    toggleBouncyBar();
+  } catch (error) {
+    console.log(error);
+    $selectBtn.attr("disabled", false);
+    //$selectBtn.removeClass("hideElement").addClass("custom-select");
+    //$("#progressLoader").addClass("hideElement").removeClass("showElement");
+  }
 });
 
 $selectBtn.on("change", function (e) {
-  console.log( e.target.value);
-  if(e.target.value === ""){
-      $("#dropBox").addClass("hideDropBox");
-  }else{
+  console.log(e.target.value);
+  if (e.target.value === "") {
+    $("#dropBox").addClass("hideDropBox");
+  } else {
     $("#dropBox").removeClass("hideDropBox");
     selectedCustomerId = e.target.value;
   }

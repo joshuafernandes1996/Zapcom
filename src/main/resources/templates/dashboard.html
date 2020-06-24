@@ -50,50 +50,47 @@
         <a href="/logout" class="nav-link navbar-text">Logout</a>
       </div>
     </nav>
-    <!-- <div id="custom-loader" class="loader">
+    <div id="custom-loader" class="loader">
       <div class="bar"></div>
-    </div> -->
-    <div class="progress" style="height: 1px;">
-      <div class="progress-bar" role="progressbar" style="width: 25%;" aria-valuenow="25" aria-valuemin="0"
-           aria-valuemax="100"></div>
     </div>
     <main id="app" class="container">
       <div class="d-flex align-items-center p-3 my-3 text-white-50 rounded box-shadow"
-           style="background-color: #2b5588;">
+           style="background-color: #2b5588; justify-content:space-between">
         <div class="lh-100">
           <h6 class="mb-0 text-white lh-100">QuickBooks TimeSheet Upload</h6>
+        </div>
+        <div class="select-customer">
+          <select id="customerSelect" class="custom-select" aria-label="Customer">
+            <option value="">Select Customer</option>
+          </select>
+          <!-- <div id="progressLoader" class="hideProgressLoader">
+            <label class="control-label"> Fetching Customers.... </label>
+            <div class="progress">
+              <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
+            </div>
+          </div> -->
         </div>
       </div>
       <div class="my-3 p-3 bg-white rounded box-shadow">
         <h6 data-toggle="tooltip" data-placement="top" title="Tooltip on top"
             class="border-bottom border-gray pb-2 mb-0">
-          1. Upload Excel TimeSheet
+          1. Upload TimeSheet and Lookup Table
         </h6>
         <div class="row pt-3">
           <div class="col-md-6">
             <p class="font-italic">* Upload a .xlsx file only</p>
             <p class="font-italic">* Please select a Customer to Drop/Select Excel Sheet</p>
             <p class="font-italic">
-              * The excel file should have the following columns: Date, Hours,
-              Person, Budget, Customer, HourlyRate
+              * The timesheet file should have the following columns: Date, Hours,
+              Person, Budget
+            </p>
+            <p class="font-italic">
+              * The lookup table file should have the following columns: NblyName, QBOName, RateCard
             </p>
             <div>
 
 
-              <div class="form-group select-customer">
-                <label class="control-label"> Select Customer </label>
-                <div class="col-sm-10" style="max-width:100%;">
-                  <select id="customerSelect" class="custom-select" aria-label="Customer">
-                    <option value="">Select Customer</option>
-                  </select>
-                  <div id="progressLoader" class="hideProgressLoader">
-                    <label class="control-label"> Fetching Customers.... </label>
-                    <div class="progress">
-                      <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+
             </div>
           </div>
           <div id="dropBox" class="col-md-6 hideDropBox">
@@ -105,7 +102,7 @@
                   </path>
                 </svg>
                 <input type="file" name="files[]" id="file" class="box__file" accept=".xlsx"
-                       data-multiple-caption="{count} files selected" />
+                       data-multiple-caption="{count} files selected" multiple/>
                 <label for="file"><strong class="box__chooseText">Choose a .xlsx file</strong><span
                         class="box__dragndrop"> or drag it here</span>.</label>
                 <button type="submit" class="box__btn">Upload</button>
@@ -124,7 +121,7 @@
         <div class="row pt-3">
           <div class="col-md-12">
             <div id="table" class="table-editable">
-              <table id="data-table" class="table table-bordered table-responsive-md text-center">
+              <table id="data-table" class="table table-bordered responsive text-center">
                 <thead class="thead-light">
                 <tr>
                   <th class="text-center">Id</th>
@@ -134,7 +131,6 @@
                   <th class="text-center">Person</th>
                   <th class="text-center">Budget</th>
                   <th class="text-center">CustomerRefVal</th>
-                  <th class="text-center">Customer</th>
                   <th class="text-center">Hourly Rate</th>
                   <th class="text-center">BillableStatus</th>
                 </tr>
@@ -146,13 +142,8 @@
         </div>
       </div>
     </main>
-<<<<<<< HEAD
     <div id="toast-container">
       <!-- <div id="validate-toast" class="toast" data-autohide="false" data-delay="5000">
-=======
-    <div class="toast-container" style="display: none;">
-      <div id="validate-toast" class="toast" data-autohide="false" data-delay="5000">
->>>>>>> origin/development
         <div class="toast-header">
           <strong class="mr-auto">Employee TS</strong>
           <small>Just now</small>
