@@ -32,26 +32,28 @@
 
 <body class="bg-light">
   <div class="main-container">
-    <nav class="navbar navbar-expand-lg navbar-light navbar-custom box-shadow">
-      <a class="navbar-brand navbar-brand-custom" href="#"><img src="../static/images/Zapcom-Logo.png" height="40px"
-                                                                width="auto" th:src="@{/images/Zapcom-Logo.png}" alt="ZapCom Group Inc." />
-        <span class="brand-title">Employee TimeSheet</span></a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
-              aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-
-      <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav mr-auto">
-          <li class="nav-item active">
-            <a class="nav-link" href="#">Dashboard <span class="sr-only">(current)</span></a>
-          </li>
-        </ul>
-        <a href="/logout" class="nav-link navbar-text">Logout</a>
+    <div class="nav-container sticky-top">
+      <nav class="navbar navbar-expand-lg navbar-light navbar-custom box-shadow ">
+        <a class="navbar-brand navbar-brand-custom" href="#"><img src="../static/images/Zapcom-Logo.png" height="40px"
+                                                                  width="auto" th:src="@{/images/Zapcom-Logo.png}" alt="ZapCom Group Inc." />
+          <span class="brand-title">Employee TimeSheet</span></a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+                aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+  
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav mr-auto">
+            <li class="nav-item active">
+              <a class="nav-link" href="#">Dashboard <span class="sr-only">(current)</span></a>
+            </li>
+          </ul>
+          <a href="/logout" class="nav-link navbar-text">Logout</a>
+        </div>
+      </nav>
+      <div id="custom-loader" class="loader">
+        <div class="bar"></div>
       </div>
-    </nav>
-    <div id="custom-loader" class="loader">
-      <div class="bar"></div>
     </div>
     <main id="app" class="container">
       <div class="d-flex align-items-center p-3 my-3 text-white-50 rounded box-shadow"
@@ -60,7 +62,7 @@
           <h6 class="mb-0 text-white lh-100">QuickBooks TimeSheet Upload</h6>
         </div>
         <div class="select-customer">
-          <select id="customerSelect" class="custom-select" aria-label="Customer">
+          <select id="customerSelect" class="custom-select" aria-label="Customer" aria-readonly="true">
             <option value="">Select Customer</option>
           </select>
           <!-- <div id="progressLoader" class="hideProgressLoader">
@@ -114,7 +116,7 @@
           </div>
         </div>
       </div>
-      <div class="my-3 p-3 mb-2 bg-white rounded box-shadow">
+      <div class="my-3 p-3 mb-2 bg-white rounded box-shadow" style="height: 500px;">
         <h6 class="border-bottom border-gray pb-2 mb-0">
           2. Excel Data Import
         </h6>

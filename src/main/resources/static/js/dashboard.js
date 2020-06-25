@@ -53,7 +53,7 @@ async function asyncForEach(array, callback) {
 const toggleBouncyBar = () => {
   const bouncyBar = document.getElementById("custom-loader");
   let bouncyBarStyle = bouncyBar.style.visibility;
-  console.log(bouncyBarStyle)
+  console.log(bouncyBarStyle);
   bouncyBar.style.visibility =
     bouncyBarStyle === "visible" ? "hidden" : "visible";
 };
@@ -168,13 +168,23 @@ const isAdvancedUpload = (function () {
 })();
 
 const showFiles = function (files) {
+  let labelString = ``;
+
+  if (files.length > 1) {
+    Array.from(files).forEach((file, idx) => {
+      labelString += idx > 0 ? ` & ${file.name}` : file.name;
+    });
+  } else if(files.length == 1) {
+    labelString = files[0].name;
+  }
   $label.text(
-    files.length > 1
-      ? ($input.attr("data-multiple-caption") || "").replace(
-          "{count}",
-          files.length
-        )
-      : files[0].name
+    // files.length > 1
+    //   ? ($input.attr("data-multiple-caption") || "").replace(
+    //       "{count}",
+    //       files.length
+    //     )
+    //   : files[0].name
+    labelString
   );
 };
 
@@ -185,6 +195,9 @@ const updateInArray = function (array, element) {
 };
 
 const deleteDataFromQuickBooks = async (dates, empDate) => {
+  console.log("[Unique Dates]", dates);
+  console.log("[Employee date relationship]", empDate);
+
   try {
     await asyncForEach(Array.from(dates), async (element) => {
       const response = await fetch(
@@ -204,7 +217,7 @@ const deleteDataFromQuickBooks = async (dates, empDate) => {
             row.customerRef.value === selectedCustomerId
         );
       });
-      //console.log("[Filtered timesheet]", filteredData);
+      console.log("[Filtered timesheet]", filteredData);
 
       await asyncForEach(filteredData, async (element) => {
         const response = await fetch(
@@ -250,10 +263,16 @@ const validateSheet = async function (sheet, isFirst) {
       const data = await response.json();
       //console.log(data);
       //employees["" + eachEmp] = data === "failed" ? data : data.id;
-      if(data === "failed") {
-        toggleToast({isError: true, msg: `Employee: ${eachEmp} doesn't exist in quickbooks`}, true)
+      if (data === "failed") {
+        toggleToast(
+          {
+            isError: true,
+            msg: `Employee: ${eachEmp} doesn't exist in quickbooks`,
+          },
+          true
+        );
       } else {
-        employees["" + eachEmp] = data.id
+        employees["" + eachEmp] = data.id;
       }
     } catch (error) {
       console.log(error);
@@ -470,8 +489,6 @@ const populateTable = function (validatedData) {
             id: "btn-submit",
           },
           action: async function () {
-            
-            
             const tableData = dataTable.rows().data().toArray();
             console.log(tableData);
             const data = await validateSheet(tableData);
@@ -671,6 +688,8 @@ $(document).ready(async function () {
     const response = await fetch("/getCustomers");
     const data = await response.json();
     let reducedData = [];
+    let isDwyerFound = false;
+    const companyRegex = new RegExp(/Bill's*.*/);
     data.map((item) => {
       reducedData.push({ id: item.id, companyName: item.companyName });
     });
@@ -680,17 +699,35 @@ $(document).ready(async function () {
       .append(
         reducedData.map(function (v) {
           if (v.companyName !== null) {
-            return $("<option/>", {
-              value: v.id,
-              text: v.companyName,
-            });
+            if (companyRegex.test(v.companyName)) {
+              selectedCustomerId = v.id;
+              isDwyerFound = true;
+              return $("<option/>", {
+                value: v.id,
+                text: v.companyName,
+                selected: true,
+              });
+              
+            } else {
+              return $("<option/>", {
+                value: v.id,
+                text: v.companyName,
+              });
+            }
           }
         })
       )
       .change(function () {
         console.log(this.value);
       });
-    $selectBtn.attr("disabled", false);
+
+    if(isDwyerFound) {
+      $("#dropBox").removeClass("hideDropBox");
+      $selectBtn.attr("disabled", true) 
+    } else {
+      $selectBtn.attr("disabled", false);
+    }
+    //$selectBtn.attr("disabled", false);
     //$selectBtn.removeClass("hideElement").addClass("custom-select");
     //$("#progressLoader").addClass("hideElement").removeClass("showElement");
     toggleBouncyBar();

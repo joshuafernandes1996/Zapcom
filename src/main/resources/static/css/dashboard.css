@@ -16,6 +16,11 @@ body {
   background-color: #fff;
 }
 
+.nav-container {
+  display: flex;
+  flex-direction: column;
+}
+
 .box-shadow {
   box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.05);
 }
@@ -30,7 +35,6 @@ body {
 }
 
 .box {
-  font-size: 1.25rem;
   background-color: #eff3f5 !important;
   position: relative;
   padding: 20px;
@@ -66,8 +70,9 @@ body {
 
 .box__file + label {
   max-width: 80%;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /*text-overflow: ellipsis;
+  white-space: nowrap;*/
+  text-align: center;
   cursor: pointer;
   display: inline-block;
   overflow: hidden;
@@ -125,7 +130,7 @@ body {
 }
 
 #custom-loader {
-  visibility: hidden;
+  visibility: visible;
 }
 
 .loader {
