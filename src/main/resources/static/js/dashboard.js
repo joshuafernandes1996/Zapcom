@@ -104,7 +104,7 @@ const filterExcelFiles = async (fileList) => {
     const timesheetFile = await fileReader(
       filterFiles(files, /TimeExplorer*.*(.xlsx)$/i)
     );
-    parseXLSX(timesheetFile, false, 0);
+    parseXLSX(timesheetFile, false, 1);
   } catch (error) {
     toggleToast({ isError: true, msg: error.msg }, true);
   }
@@ -689,7 +689,7 @@ $(document).ready(async function () {
     const data = await response.json();
     let reducedData = [];
     let isDwyerFound = false;
-    const companyRegex = new RegExp(/Bill's*.*/);
+    const companyRegex = new RegExp(/Dwyer*.*/);
     data.map((item) => {
       reducedData.push({ id: item.id, companyName: item.companyName });
     });

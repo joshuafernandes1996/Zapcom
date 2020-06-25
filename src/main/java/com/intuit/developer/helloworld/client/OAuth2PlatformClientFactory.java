@@ -29,7 +29,7 @@ public class OAuth2PlatformClientFactory {
 	public void init() {
 		//initialize the config
 		oauth2Config = new OAuth2Config.OAuth2ConfigBuilder(env.getProperty("OAuth2AppClientId"), env.getProperty("OAuth2AppClientSecret")) //set client id, secret
-				.callDiscoveryAPI(Environment.SANDBOX) // call discovery API to populate urls
+				.callDiscoveryAPI(Environment.PRODUCTION) // call discovery API to populate urls
 				.buildConfig();
 		//build the client
 		client  = new OAuth2PlatformClient(oauth2Config);
