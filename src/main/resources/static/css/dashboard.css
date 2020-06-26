@@ -198,3 +198,8 @@ body {
     pointer-events: all;
     opacity: 1;
 }
+
+.hide{
+    pointer-events: none;
+    opacity: .5;
+}

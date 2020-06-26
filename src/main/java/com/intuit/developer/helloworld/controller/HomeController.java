@@ -1,22 +1,23 @@
 package com.intuit.developer.helloworld.controller;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.HttpSession;
 
 import com.intuit.oauth2.client.OAuth2PlatformClient;
-import com.intuit.oauth2.config.Environment;
 import com.intuit.oauth2.data.PlatformResponse;
 import com.intuit.oauth2.exception.ConnectionException;
 import org.apache.log4j.Logger;
-import org.apache.tools.ant.taskdefs.condition.Http;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.View;
 import org.springframework.web.servlet.view.RedirectView;
-
 import com.intuit.developer.helloworld.client.OAuth2PlatformClientFactory;
 import com.intuit.oauth2.config.OAuth2Config;
 import com.intuit.oauth2.config.Scope;
@@ -42,9 +43,9 @@ public class HomeController {
     }
 
     @RequestMapping("/logout")
-    public String logout(HttpSession session) throws ConnectionException {
-        if (session.getAttribute("access_token") == null)
-            return "home";
+    public String logout(HttpSession session) throws ConnectionException, InterruptedException {
+        if (session.getAttribute("access_token") == null){
+            return "home";}
         else {
             OAuth2PlatformClient client = factory.getOAuth2PlatformClient();
             String refreshToken = (String) session.getAttribute("refresh_token");
@@ -55,7 +56,8 @@ public class HomeController {
             System.out.println(refreshToken);
             System.out.println(response.getErrorMessage());
             session.invalidate();
-            return "dashboard";
+            TimeUnit.SECONDS.sleep(2);
+            return "home";
         }
     }
 
