@@ -264,7 +264,7 @@ const validateSheet = async function (sheet, isFirst) {
       const data = await response.json();
       //console.log(data);
       //employees["" + eachEmp] = data === "failed" ? data : data.id;
-      if (data === "failed") {
+      if (data.error === "failed") {
         toggleToast(
           {
             isError: true,
