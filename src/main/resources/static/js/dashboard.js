@@ -50,12 +50,13 @@ async function asyncForEach(array, callback) {
 //   return `${date_info.getMonth()}/${date_info.getDate()}/${date_info.getFullYear()}`;
 // }
 
-const toggleBouncyBar = () => {
+const toggleBouncyBar = (bouncyBarVisibility) => {
   const bouncyBar = document.getElementById("custom-loader");
-  let bouncyBarStyle = bouncyBar.style.visibility;
-  console.log(bouncyBarStyle);
-  bouncyBar.style.visibility =
-    bouncyBarStyle === "visible" ? "hidden" : "visible";
+  // let bouncyBarStyle = bouncyBar.style.visibility;
+  // console.log(bouncyBarStyle);
+  // bouncyBar.style.visibility =
+  //   bouncyBarStyle === "visible" ? "hidden" : "visible";
+  bouncyBar.style.visibility = bouncyBarVisibility
 };
 
 const lookUpTableFilter = (lookUpTable, sheetRow) => {
@@ -104,7 +105,7 @@ const filterExcelFiles = async (fileList) => {
     const timesheetFile = await fileReader(
       filterFiles(files, /TimeExplorer*.*(.xlsx)$/i)
     );
-    parseXLSX(timesheetFile, false, 1);
+    parseXLSX(timesheetFile, false, 0);
   } catch (error) {
     toggleToast({ isError: true, msg: error.msg }, true);
   }
@@ -174,7 +175,7 @@ const showFiles = function (files) {
     Array.from(files).forEach((file, idx) => {
       labelString += idx > 0 ? ` & ${file.name}` : file.name;
     });
-  } else if(files.length == 1) {
+  } else if (files.length == 1) {
     labelString = files[0].name;
   }
   $label.text(
@@ -232,7 +233,7 @@ const deleteDataFromQuickBooks = async (dates, empDate) => {
 };
 
 const validateSheet = async function (sheet, isFirst) {
-  toggleBouncyBar();
+  toggleBouncyBar("visible");
   let customData = {};
   //$("#validate-toast").toast("show");
   toggleToast({ msg: "Validating Data.. Please Wait" }, true);
@@ -263,7 +264,7 @@ const validateSheet = async function (sheet, isFirst) {
       const data = await response.json();
       //console.log(data);
       //employees["" + eachEmp] = data === "failed" ? data : data.id;
-      if (data === "failed") {
+      if (data.error === "failed") {
         toggleToast(
           {
             isError: true,
@@ -434,6 +435,28 @@ const fileReader = (file) => {
   });
 };
 
+const batchPostTimeActivity = async (batchPayload) => {
+  try {
+    const response = await fetch("/commitEffort", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(batchPayload),
+    });
+    console.log(await response.json());
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+const reinitializeTable = (validatedData) => {
+  dataTable.clear().destroy();
+  $tableID.find("tbody").empty();
+  dataTable = undefined;
+  populateTable(validatedData);
+};
+
 const populateTable = function (validatedData) {
   let { payload } = validatedData;
   if (dataTable) {
@@ -503,11 +526,48 @@ const populateTable = function (validatedData) {
                 },
                 true
               );
-              dataTable.clear().rows.add(data.payload).draw();
+              //dataTable.clear().rows.add(data.payload).draw();
+              reinitializeTable(data);
             } else {
-              toggleBouncyBar();
+              toggleBouncyBar("visible");
               document.getElementById("btn-submit").disabled = true;
-              await asyncForEach(data.payload, async (element) => {
+              const { payload } = data;
+              // await asyncForEach(data.payload, async (element) => {
+              //   const {
+              //     TxnDate,
+              //     EmployeeRefVal,
+              //     CustomerRefVal,
+              //     Hours,
+              //     Description,
+              //     BillableStatus,
+              //     HourlyRate,
+              //   } = element;
+              //   const samplePayload = {
+              //     TxnDate: TxnDate,
+              //     RmployeeRefVal: EmployeeRefVal,
+              //     CustomerRefVal: CustomerRefVal,
+              //     Hours: Hours,
+              //     Description: Description,
+              //     BillableStatus: BillableStatus,
+              //     HourlyRate: HourlyRate,
+              //   };
+              //   //console.log("[Payload]", payload);
+              //   try {
+              //     const response = await fetch("/commitEffort", {
+              //       method: "POST",
+              //       headers: {
+              //         "Content-Type": "application/json",
+              //       },
+              //       body: JSON.stringify(samplePayload),
+              //     });
+              //     console.log(await response.json());
+              //   } catch (error) {
+              //     console.log(error);
+              //   }
+              // });
+              let batchPayload = [];
+              //payload.forEach((timeActivity, idx, array) => {
+              await asyncForEach(payload, async (timeActivity, idx, array) => {
                 const {
                   TxnDate,
                   EmployeeRefVal,
@@ -516,7 +576,7 @@ const populateTable = function (validatedData) {
                   Description,
                   BillableStatus,
                   HourlyRate,
-                } = element;
+                } = timeActivity;
                 const samplePayload = {
                   txnDate: TxnDate,
                   employeeRefVal: EmployeeRefVal,
@@ -526,21 +586,13 @@ const populateTable = function (validatedData) {
                   billableStatus: BillableStatus,
                   hourlyRate: HourlyRate,
                 };
-                //console.log("[Payload]", payload);
-                try {
-                  const response = await fetch("/commitEffort", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(samplePayload),
-                  });
-                  console.log(await response.json());
-                } catch (error) {
-                  console.log(error);
+                batchPayload.push(samplePayload);
+                if (batchPayload.length == 30 || idx == payload.length - 1) {
+                  await batchPostTimeActivity(batchPayload);
+                  batchPayload = [];
                 }
               });
-              toggleBouncyBar();
+              toggleBouncyBar("hidden");
               //$("#sub-success-toast").toast("show");
               toggleToast(
                 { msg: "Successfully pushed data to QuickBooks" },
@@ -606,10 +658,10 @@ const populateTable = function (validatedData) {
   dataTable.column(3).visible(false);
   dataTable.column(6).visible(false);
   //$("#validate-toast").hide();
-  toggleBouncyBar();
+  toggleBouncyBar("hidden");
   $('[data-toggle="tooltip"]').tooltip();
 
-  $("#btn-edit").on("click", function (e) {
+  $("#btn-edit").on("click", async function (e) {
     e.preventDefault();
     const id = $("#row-id").val();
     const editedRow = {
@@ -625,10 +677,12 @@ const populateTable = function (validatedData) {
     };
     payload = updateInArray(payload, editedRow);
     //dataTable.row(id).data(editedRow).invalidate().draw();
-    dataTable.clear().draw();
-    dataTable.rows.add(payload);
-    dataTable.columns.adjust().draw();
+    // dataTable.clear().draw();
+    // dataTable.rows.add(payload);
+    // dataTable.columns.adjust().draw();
     $editModal.modal("hide");
+    const validatedData = await validateSheet(payload, false);
+    reinitializeTable(validatedData);
   });
 };
 
@@ -680,7 +734,6 @@ if (isAdvancedUpload) {
 $(document).ready(async function () {
   //$("#progressLoader").addClass("showElement").removeClass("hideElement");
   $selectBtn.attr("disabled", true);
-  toggleBouncyBar();
   //$selectBtn.addClass("hideElement").removeClass("custom-select");
 
   try {
@@ -707,7 +760,6 @@ $(document).ready(async function () {
                 text: v.companyName,
                 selected: true,
               });
-              
             } else {
               return $("<option/>", {
                 value: v.id,
@@ -721,16 +773,16 @@ $(document).ready(async function () {
         console.log(this.value);
       });
 
-    if(isDwyerFound) {
+    if (isDwyerFound) {
       $("#dropBox").removeClass("hideDropBox");
-      $selectBtn.attr("disabled", true) 
+      $selectBtn.attr("disabled", true);
     } else {
       $selectBtn.attr("disabled", false);
     }
     //$selectBtn.attr("disabled", false);
     //$selectBtn.removeClass("hideElement").addClass("custom-select");
     //$("#progressLoader").addClass("hideElement").removeClass("showElement");
-    toggleBouncyBar();
+    toggleBouncyBar("hidden");
   } catch (error) {
     console.log(error);
     $selectBtn.attr("disabled", false);
