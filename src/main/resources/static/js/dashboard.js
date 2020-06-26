@@ -174,7 +174,7 @@ const showFiles = function (files) {
     Array.from(files).forEach((file, idx) => {
       labelString += idx > 0 ? ` & ${file.name}` : file.name;
     });
-  } else if(files.length == 1) {
+  } else if (files.length == 1) {
     labelString = files[0].name;
   }
   $label.text(
@@ -434,6 +434,13 @@ const fileReader = (file) => {
   });
 };
 
+const reinitializeTable = (validatedData) => {
+  dataTable.clear().destroy();
+  $tableID.find("tbody").empty();
+  dataTable = undefined;
+  populateTable(validatedData);
+};
+
 const populateTable = function (validatedData) {
   let { payload } = validatedData;
   if (dataTable) {
@@ -503,7 +510,8 @@ const populateTable = function (validatedData) {
                 },
                 true
               );
-              dataTable.clear().rows.add(data.payload).draw();
+              //dataTable.clear().rows.add(data.payload).draw();
+              reinitializeTable(data);
             } else {
               toggleBouncyBar();
               document.getElementById("btn-submit").disabled = true;
@@ -609,7 +617,7 @@ const populateTable = function (validatedData) {
   toggleBouncyBar();
   $('[data-toggle="tooltip"]').tooltip();
 
-  $("#btn-edit").on("click", function (e) {
+  $("#btn-edit").on("click", async function (e) {
     e.preventDefault();
     const id = $("#row-id").val();
     const editedRow = {
@@ -625,10 +633,12 @@ const populateTable = function (validatedData) {
     };
     payload = updateInArray(payload, editedRow);
     //dataTable.row(id).data(editedRow).invalidate().draw();
-    dataTable.clear().draw();
-    dataTable.rows.add(payload);
-    dataTable.columns.adjust().draw();
+    // dataTable.clear().draw();
+    // dataTable.rows.add(payload);
+    // dataTable.columns.adjust().draw();
     $editModal.modal("hide");
+    const validatedData = await validateSheet(payload, false);
+    reinitializeTable(validatedData);
   });
 };
 
@@ -707,7 +717,6 @@ $(document).ready(async function () {
                 text: v.companyName,
                 selected: true,
               });
-              
             } else {
               return $("<option/>", {
                 value: v.id,
@@ -721,9 +730,9 @@ $(document).ready(async function () {
         console.log(this.value);
       });
 
-    if(isDwyerFound) {
+    if (isDwyerFound) {
       $("#dropBox").removeClass("hideDropBox");
-      $selectBtn.attr("disabled", true) 
+      $selectBtn.attr("disabled", true);
     } else {
       $selectBtn.attr("disabled", false);
     }
