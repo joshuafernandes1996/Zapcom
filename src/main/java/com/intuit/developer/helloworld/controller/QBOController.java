@@ -611,12 +611,12 @@ public class QBOController {
 				String jsonInString = mapper.writeValueAsString(employeeInfo);
 				return jsonInString;
 			} catch (JsonProcessingException e) {
-				logger.error("Exception while getting company info ", e);
+				logger.error("Exception while getting employee info ", e);
 				return new JSONObject().put("response",failureMsg).toString();
 			}
 
 		}
-		return failureMsg;
+		return  new JSONObject().put("error", failureMsg).toString();
 	}
 
 	private String processResponse(String failureMsg, QueryResult queryResult) {
@@ -633,7 +633,7 @@ public class QBOController {
 			}
 
 		}
-		return failureMsg;
+		return  new JSONObject().put("error", failureMsg).toString();
 	}
 
 	private String timeActProcessResponse(String failureMsg, QueryResult queryResult) {
@@ -685,7 +685,7 @@ public class QBOController {
 				// error has error code, detail, message
 			} else if(batchOperation.isEntity(bId)) {
 				TimeActivity activity = (TimeActivity) batchOperation.getEntity(bId);
-				batchResponseData.add(activity);
+				batchResponseData.add("Entity created with Batch Id: " + bId);
 				// cast to the corresponding entity and read values
 			}
 		}
