@@ -31,8 +31,12 @@ const setProgressPercentage = (percent) => {
   $app.addClass("hide")
   $progressBarContainer.css("display", "block");
   if(percent === 100){
-    $app.removeClass("hide")
-    $progressBarContainer.css("display", "none");
+    $progressBarInfo.html('Please wait while we load the information...');
+    setTimeout(()=>{
+        $app.removeClass("hide");
+        $progressBarContainer.css("display", "none");
+    }, 5000);
+
   }
 };
 
@@ -258,7 +262,6 @@ const deleteDataFromQuickBooks = async (dates, empDate) => {
 
 const validateSheet = async function (sheet, isFirst) {
   toggleBouncyBar("visible");
-  alert('1')
   if(isFirst)setProgressPercentage(0);
   let customData = {};
   //$("#validate-toast").toast("show");
@@ -556,7 +559,6 @@ const populateTable = function (validatedData) {
               reinitializeTable(data);
             } else {
               toggleBouncyBar("visible");
-              alert('2')
               document.getElementById("btn-submit").disabled = true;
               const { payload } = data;
               // await asyncForEach(data.payload, async (element) => {
