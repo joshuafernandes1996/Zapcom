@@ -443,7 +443,7 @@ public class QBOController {
 				DataService service = helper.getDataService(realmId, accessToken);
 
 				// get all customerinfo
-				String sql = "select * from timeactivity where TxnDate ='" + TxnDate + "'";
+				String sql = "select * from timeactivity where TxnDate ='" + TxnDate + "' and CustomerRef ='" + CustomerId + "'";
 				QueryResult queryResult = service.executeQuery(sql);
 				return timeActProcessResponse(failureMsg, queryResult);
 
@@ -649,7 +649,8 @@ public class QBOController {
 			}
 
 		}
-		return failureMsg;
+		logger.error("Failure Msg" + failureMsg);
+		return new JSONObject().put("error", failureMsg).toString();
 	}
 
 	private String customerResponse(String failureMsg, QueryResult queryResult) {

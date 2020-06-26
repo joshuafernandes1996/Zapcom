@@ -43,6 +43,8 @@ dependencies {
     compile (group: 'ant', name: 'ant', version: '1.7.0')
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     compileOnly("org.springframework.boot:spring-boot-devtools")
+    compileOnly 'org.projectlombok:lombok:1.18.8'
+    annotationProcessor 'org.projectlombok:lombok:1.18.8'
     implementation 'org.glassfish.jaxb:jaxb-runtime'
     providedRuntime('org.springframework.boot:spring-boot-starter-tomcat')
     //implementation "org.springframework.boot:spring-boot-starter-security"

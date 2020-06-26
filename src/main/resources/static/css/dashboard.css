@@ -3,6 +3,7 @@ body {
   width: 100%;
   margin: 0px;
   padding: 0px;
+  overflow-x: hidden;
 }
 
 .main-container {
@@ -13,6 +14,11 @@ body {
 }
 .navbar-custom {
   background-color: #fff;
+}
+
+.nav-container {
+  display: flex;
+  flex-direction: column;
 }
 
 .box-shadow {
@@ -29,7 +35,6 @@ body {
 }
 
 .box {
-  font-size: 1.25rem;
   background-color: #eff3f5 !important;
   position: relative;
   padding: 20px;
@@ -65,8 +70,9 @@ body {
 
 .box__file + label {
   max-width: 80%;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /*text-overflow: ellipsis;
+  white-space: nowrap;*/
+  text-align: center;
   cursor: pointer;
   display: inline-block;
   overflow: hidden;
@@ -116,18 +122,64 @@ body {
   padding-top: 1.4rem;
 }
 
-.toast-container {
+#toast-container {
   position: fixed; 
-  top: 0; 
-  right: 0;
+  bottom: 0; 
+  left: 0;
+  width: auto;
+}
+
+#custom-loader {
+  visibility: visible;
+}
+
+.loader {
+  height: 5px;
+  width: 100%;
+  overflow: hidden;
+  transition: display ease-in linear 0.5s;
+}
+.loader .bar {
+  width: 100%;
+  position: absolute;
+  height: 5px;
+  background-color: dodgerblue;
+  animation-name: loader-animation;
+  animation-duration: 3s;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+}
+
+@keyframes loader-animation {
+  0% {
+    left: -100%;
+  }
+  49% {
+    left: 100%;
+  }
+  50% {
+    left: 100%;
+  }
+  100% {
+    left: -100%;
+  }
+}
+
+.toast .error-toast {
+  background-color: #EF5350;
+  color: white;
+}
+
+.toast .info-toast {
+  background-color: #454553;
+  color: white;
 }
 
 .select-customer {
-  background-color: #2b5588;
-  color: #fff;
-  padding: 0.5em;
-  border-radius: 4px;
+  width: 50%;
+  justify-content:space-between;
 }
+
 
 .hideElement{
     display: none;
