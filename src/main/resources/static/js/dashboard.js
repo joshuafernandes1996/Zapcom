@@ -1,4 +1,5 @@
 const $form = $(".box");
+const $app = $("#app");
 const $input = $form.find('input[type="file"]');
 const $label = $form.find("label");
 const $tableID = $("#table");
@@ -16,6 +17,28 @@ let lookUpTableData = [];
 let tableRows;
 let dataTable;
 let selectedCustomerId = "";
+
+//ProgressBarInfo
+let filterProgress = 0;
+const $progressBarContainer = $("#progressBarContainer");
+const $progressBar = $("#progressBar");
+const $progressBarInfo = $("#progressBarInfo");
+
+const setProgressPercentage = (percent) => {
+  toggleBouncyBar("hidden");
+  $progressBar.css("width", Math.ceil(percent)+'%');
+  $progressBarInfo.html('Please wait while data is being validated ('+Math.ceil(percent)+'% Complete)');
+  $app.addClass("hide")
+  $progressBarContainer.css("display", "block");
+  if(percent === 100){
+    $progressBarInfo.html('Please wait while we load the information...');
+    setTimeout(()=>{
+        $app.removeClass("hide");
+        $progressBarContainer.css("display", "none");
+    }, 5000);
+
+  }
+};
 
 async function asyncForEach(array, callback) {
   for (let index = 0; index < array.length; index++) {
@@ -56,7 +79,7 @@ const toggleBouncyBar = (bouncyBarVisibility) => {
   // console.log(bouncyBarStyle);
   // bouncyBar.style.visibility =
   //   bouncyBarStyle === "visible" ? "hidden" : "visible";
-  bouncyBar.style.visibility = bouncyBarVisibility;
+  bouncyBar.style.visibility = bouncyBarVisibility
 };
 
 const lookUpTableFilter = (lookUpTable, sheetRow) => {
@@ -200,11 +223,16 @@ const deleteDataFromQuickBooks = async (dates, empDate) => {
   console.log("[Employee date relationship]", empDate);
 
   try {
-    await asyncForEach(Array.from(dates), async (element) => {
+    await asyncForEach(Array.from(dates), async (element,index) => {
       const response = await fetch(
         `/getTimeActivityByDate?TxnDate=${element.toString()}&CustomerId=${selectedCustomerId}`
       );
       const data = await response.json();
+      if((index+1) === (Array.from(dates).length)){
+            setProgressPercentage(100);
+      }else{
+            setProgressPercentage((index/Array.from(dates).length)*100);
+      }
       if (data.error === "Failed") {
         return;
       }
@@ -234,6 +262,7 @@ const deleteDataFromQuickBooks = async (dates, empDate) => {
 
 const validateSheet = async function (sheet, isFirst) {
   toggleBouncyBar("visible");
+  if(isFirst)setProgressPercentage(0);
   let customData = {};
   //$("#validate-toast").toast("show");
   toggleToast({ msg: "Validating Data.. Please Wait" }, true);
