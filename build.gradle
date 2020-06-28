@@ -4,7 +4,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:2.1.0.RELEASE")
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:2.3.1.RELEASE")
     }
 }
 
@@ -18,9 +18,8 @@ apply plugin: 'idea'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
 
-jar {
-    baseName = 'hello-world-java'
-    version =  '0.1.0'
+bootJar {
+    launchScript()
 }
 
 repositories {
@@ -28,13 +27,13 @@ repositories {
     mavenLocal()
 }
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+sourceCompatibility = 1.11
+targetCompatibility = 1.11
 
 dependencies {
-	compile("com.intuit.quickbooks-online:ipp-v3-java-data:4.0.1")
-    compile (group: 'com.intuit.quickbooks-online', name: 'ipp-v3-java-devkit', version: '4.0.1', classifier: 'jar-with-dependencies')
-    compile (group: 'com.intuit.quickbooks-online', name: 'oauth2-platform-api', version: '4.0.3', classifier: 'jar-with-dependencies')
+	compile("com.intuit.quickbooks-online:ipp-v3-java-data:4.0.3")
+    compile (group: 'com.intuit.quickbooks-online', name: 'ipp-v3-java-devkit', version: '5.0.2', classifier: 'jar-with-dependencies')
+    compile (group: 'com.intuit.quickbooks-online', name: 'oauth2-platform-api', version: '5.0.2', classifier: 'jar-with-dependencies')
     compile("org.springframework.boot:spring-boot-starter-web")
     compile("org.springframework.boot:spring-boot-starter-thymeleaf")
     compile("org.springframework.data:spring-data-rest-webmvc")
@@ -45,11 +44,11 @@ dependencies {
     compileOnly("org.springframework.boot:spring-boot-devtools")
     compileOnly 'org.projectlombok:lombok:1.18.8'
     annotationProcessor 'org.projectlombok:lombok:1.18.8'
-    implementation 'org.glassfish.jaxb:jaxb-runtime'
+    //implementation 'org.glassfish.jaxb:jaxb-runtime'
     providedRuntime('org.springframework.boot:spring-boot-starter-tomcat')
     //implementation "org.springframework.boot:spring-boot-starter-security"
 }
 
 wrapper {
-    gradleVersion = '5.4.1'
+    gradleVersion = '6.5'
 }
