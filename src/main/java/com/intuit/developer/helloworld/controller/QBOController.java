@@ -1,6 +1,9 @@
 package com.intuit.developer.helloworld.controller;
 
 import java.math.BigDecimal;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -497,7 +500,14 @@ public class QBOController {
 			timeActivity.setHourlyRate(b);
 			Integer i = Integer.valueOf(tempTimeActivity.getHours());
 			timeActivity.setHours(i);
-			timeActivity.setTxnDate(new Date(tempTimeActivity.getTxnDate()));
+			//timeActivity.setTxnDate(new Date(tempTimeActivity.getTxnDate()));
+			SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+			try {
+				Date txnDate = sdf.parse(tempTimeActivity.getTxnDate());
+				timeActivity.setTxnDate(txnDate);
+			} catch (ParseException e) {
+				e.printStackTrace();
+			}
 			timeActivity.setNameOf(TimeActivityTypeEnum.EMPLOYEE);
 			timeActivity.setDescription(tempTimeActivity.getDescription());
 			idx.getAndIncrement();
