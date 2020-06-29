@@ -498,8 +498,17 @@ public class QBOController {
 			logger.info("Hourly Rate: "+ tempTimeActivity.getHourlyRate());
 			BigDecimal b = new BigDecimal(tempTimeActivity.getHourlyRate());
 			timeActivity.setHourlyRate(b);
-			Integer i = Integer.valueOf(tempTimeActivity.getHours());
-			timeActivity.setHours(i);
+//			Float i = Float.valueOf(tempTimeActivity.getHours());
+//			timeActivity.setHours(Integer.valueOf(i.toString()));
+			//timeActivity.setMinutes( Integer.valueOf(60 *  (i - Integer.valueOf(i.toString()) ))));
+            String[] time = tempTimeActivity.getHours().split("\\.");
+            int min = 0;
+            int hour = Integer.parseInt(time[0].trim());
+            timeActivity.setHours(hour);
+            if(time.length > 1) {
+                min = Integer.parseInt(time[1].trim()) * 6;
+                timeActivity.setMinutes(min);
+            }
 			//timeActivity.setTxnDate(new Date(tempTimeActivity.getTxnDate()));
 			SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
 			try {
