@@ -501,7 +501,7 @@ public class QBOController {
 			timeActivity.setNameOf(TimeActivityTypeEnum.EMPLOYEE);
 			timeActivity.setDescription(tempTimeActivity.getDescription());
 			idx.getAndIncrement();
-			batchOperation.addEntity(timeActivity, OperationEnum.CREATE, "bid" + idx.get() + 1);
+			batchOperation.addEntity(timeActivity, OperationEnum.CREATE, "bid" + idx.get());
 		});
 
 

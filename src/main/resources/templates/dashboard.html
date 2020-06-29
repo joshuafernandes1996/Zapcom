@@ -10,14 +10,6 @@
       window.opener.location.href = "/dashboard";
       window.close();
     }
-
-
-
-
-
-
-
-
     </script>
     <link rel="stylesheet" type="text/css" href="../static/css/dashboard.css" th:href="@{css/dashboard.css}"/>
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"
@@ -41,7 +33,7 @@
 <body class="bg-light">
     <div class="main-container">
         <div style="background-color: #fff;" class="nav-container sticky-top">
-            <nav class="navbar navbar-expand-lg navbar-light navbar-custom box-shadow ">
+            <nav style="padding-bottom: 0;" class="navbar navbar-expand-lg navbar-light navbar-custom box-shadow ">
                 <a class="navbar-brand navbar-brand-custom" href="#"><img src="../static/images/Zapcom-Logo.png"
                                                                           height="40px"
                                                                           width="auto"
@@ -62,10 +54,10 @@
                     </ul>
                     <a href="/logout" class="nav-link navbar-text">Logout</a>
                 </div>
+                <div id="custom-loader" class="loader">
+                    <div class="bar"></div>
+                </div>
             </nav>
-            <div id="custom-loader" class="loader">
-                <div class="bar"></div>
-            </div>
             <div id="progressBarContainer" style="display:none;">
                 <div id="progressBarInfo" style="width: 100%;text-align: center;font-size: 14px;font-weight: 600;">
                     Please wait while data is being validated (100% Complete)

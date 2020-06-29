@@ -33,6 +33,7 @@ const $xlError = $("#xlError");
 const $xlErrorList = $("#xlErrorList");
 
 const checkForErrors = (type, isError, Message) => {
+console.log("-------------",Message)
   if(isError){
     if(type === "excel"){
         $xlError.removeClass("hideElement");
@@ -449,6 +450,7 @@ const validateSheet = async function (sheet, isFirst) {
   }
   customData["payload"] = samplePayloads;
   console.log("[Validated payload]", customData);
+  toggleBouncyBar("hidden");
   return customData;
 };
 
@@ -462,18 +464,49 @@ const parseSheets = function (workbook, sheets) {
   });
 };
 
+const validateSheetColumns = (sheetData, columnRef) => {
+  const lookupSheetColumns = Object.keys(sheetData[0]);
+  return columnRef.every((column) => lookupSheetColumns.includes(column));
+};
+
 const parseXLSX = async (file, isLookup, idx) => {
   const workBook = XLSX.read(file, { type: "binary" });
   const sheetNameList = workBook.SheetNames;
   if (isLookup) {
-    lookUpTableData = parseSheets(workBook, sheetNameList)[idx];
+    const tempLookupData = parseSheets(workBook, sheetNameList)[idx];
+    const lookupColumnRef = ["NblyName", "QBOName", "RateCard"];
+    const isColumnKeysValidated = validateSheetColumns(
+      tempLookupData,
+      lookupColumnRef
+    );
+    if(isColumnKeysValidated){
+        (lookUpTableData = tempLookupData)
+    }
+    else{
+        toggleToast({isError: true,msg: "Columns missing in Lookup table file.",},true);
+        checkForErrors("excel",true,"Columns missing in Lookup table file.");
+    }
+
   } else {
-    const excelData = parseSheets(workBook, sheetNameList);
+    const excelData = parseSheets(workBook, sheetNameList)[idx];
     //console.log(excelData[idx])
-    const mappedData = lookUpTableMapping(excelData[idx], lookUpTableData);
-    //console.log("[Mapped Data]", mappedData)
-    const validatedData = await validateSheet(mappedData, true);
-    populateTable(validatedData);
+    const timesheetColumnRef = ["Date", "Hours", "Person", "Budget"];
+    const isColumnKeysValidated = validateSheetColumns(
+      excelData,
+      timesheetColumnRef
+    );
+    if (isColumnKeysValidated) {
+      const mappedData = lookUpTableMapping(excelData, lookUpTableData);
+      //console.log("[Mapped Data]", mappedData)
+      const validatedData = await validateSheet(mappedData, true);
+      populateTable(validatedData);
+    } else {
+      toggleToast(
+        { isError: true, msg: "Columns missing in timesheet file" },
+        true
+      );
+      checkForErrors("excel",true,"Columns missing in timesheet file");
+    }
   }
 };
 
@@ -543,9 +576,20 @@ const populateTable = function (validatedData) {
     dataTable.columns.adjust().draw();
   } else {
     dataTable = $("#data-table").DataTable({
-      responsive: true,
+      responsive: {
+        details: {
+          type: "column",
+        },
+      },
       data: payload,
-      dom: "Bfrtip",
+      dom:
+        "<'row mb-3'<'col-sm-12 col-md-6'B>><'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+        "<'row'<'col-sm-12'tr>>" +
+        "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+      pageLength: 30,
+      pagingType: "full_numbers",
+      lengthChange: true,
+      lengthMenu: [10, 30, 50, 75, 100],
       buttons: [
         {
           text: "Edit",
