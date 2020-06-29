@@ -1,4 +1,5 @@
 const $form = $(".box");
+const $app = $("#app");
 const $input = $form.find('input[type="file"]');
 const $label = $form.find("label");
 const $tableID = $("#table");
@@ -16,6 +17,79 @@ let lookUpTableData = [];
 let tableRows;
 let dataTable;
 let selectedCustomerId = "";
+
+//ProgressBarInfo
+let filterProgress = 0;
+const $progressBarContainer = $("#progressBarContainer");
+const $progressBar = $("#progressBar");
+const $progressBarInfo = $("#progressBarInfo");
+
+//Error = Helper Text Elements for Table Data
+const $errorContainer = $("#errorContainer");
+const $errorList = $("#errorList");
+
+//Error = Helper Text Elements for Excel Files
+const $xlError = $("#xlError");
+const $xlErrorList = $("#xlErrorList");
+
+const checkForErrors = (type, isError, Message) => {
+console.log("-------------",Message)
+  if(isError){
+    if(type === "excel"){
+        $xlError.removeClass("hideElement");
+        $xlErrorList.empty().append("<li>"+ Message +"</li>");
+    } else {
+        $errorContainer.removeClass("hideElement");
+        $errorList.empty().append("<li>"+ Message +"</li>");
+    }
+  }else {
+      if(type === "excel")
+        $xlError.addClass("hideElement");
+      else
+        $errorContainer.addClass("hideElement");
+  }
+}
+
+const setProgressPercentage = (percent) => {
+  toggleBouncyBar("hidden");
+  $progressBar.css("width", Math.ceil(percent)+'%');
+  $progressBarInfo.html('Please wait while data is being validated ('+Math.ceil(percent)+'% Complete)');
+  $app.addClass("hide")
+  $progressBarContainer.css("display", "block");
+  if(percent === 100){
+    $progressBarInfo.html('Please wait while we load the information...');
+    setTimeout(()=>{
+        $app.removeClass("hide");
+        $progressBarContainer.css("display", "none");
+    }, 5000);
+
+  }
+};
+
+const toggleToast = (data, autohide) => {
+console.log(data)
+  const toastContainer = $("#toast-container");
+  if (toastContainer.find("div").length > 0) {
+    toastContainer.empty();
+  }
+  let template = ``;
+  if (data.isError) {
+    template = `<div class="toast" data-autohide="${autohide}" data-delay="5000">
+    <div class="toast-body error-toast" style="text-align: center;">
+      ${data.msg}
+    </div>
+  </div>`;
+  } else {
+    template = `<div class="toast" data-autohide="${autohide}" data-delay="5000">
+    <div class="toast-body info-toast" style="text-align: center;">
+      ${data.msg}
+    </div>
+  </div>`;
+  }
+  toastContainer.append(template);
+  const $toast = $(".toast");
+  $toast.toast("show");
+};
 
 async function asyncForEach(array, callback) {
   for (let index = 0; index < array.length; index++) {
@@ -61,6 +135,7 @@ const toggleBouncyBar = (bouncyBarVisibility) => {
 
 const lookUpTableFilter = (lookUpTable, sheetRow) => {
   const filter = lookUpTable.filter((row) => {
+  console.log(row,sheetRow)
     return row.NblyName === sheetRow.Person;
   });
   return filter[0];
@@ -72,7 +147,16 @@ const lookUpTableMapping = (sheet, lookUpTable) => {
   //console.log("look up table", lookUpTable)
   return sheetCopy.map((element) => {
     const filteredRateCard = lookUpTableFilter(lookUpTable, element);
-    //console.log(filteredRateCard)
+    console.log("filtered---------",filteredRateCard)
+    if(typeof filteredRateCard === "undefined"){
+        let EmpNames = "";
+        lookUpTable.map((li)=>{
+            EmpNames = EmpNames+" "+li.NblyName+',';
+        });
+
+        checkForErrors("table",true,"LookUp Table Employee names does not any Employee names in Timesheet Data");
+
+    }
     return {
       ...element,
       ...{
@@ -97,56 +181,41 @@ const filterExcelFiles = async (fileList) => {
     const lookUpTablefile = await fileReader(
       filterFiles(files, /LookUpTable*.*(.xlsx)$/i)
     );
-    if (!lookUpTablefile) {
-      toggleToast({ isError: true, msg: "LookUp table not uploaded" }, true);
-      return;
-    }
-    parseXLSX(lookUpTablefile, true, 0);
+
     const timesheetFile = await fileReader(
       filterFiles(files, /TimeExplorer*.*(.xlsx)$/i)
     );
-    parseXLSX(timesheetFile, false, 0);
+    let msg ='';
+    if (!lookUpTablefile || !timesheetFile) {
+        if(!lookUpTablefile && !timesheetFile)
+            {
+                let msg = "Please Upload 2 Files. \n1-TimeExplorer \n2-Lookup Table";
+                toggleToast({ isError: true, msg: msg }, true);
+                checkForErrors("excel",true,msg);
+                return;
+            }
+        if(!lookUpTablefile){
+            msg = "LookUp table not uploaded";
+            toggleToast({ isError: true, msg: msg }, true);
+            checkForErrors("excel",true,msg);
+        }
+
+        if(!timesheetFile){
+            msg = "Timesheet table not uploaded";
+            toggleToast({ isError: true, msg: msg }, true);
+            checkForErrors("excel",true,msg);
+        }
+      return;
+    }
+
+    if(lookUpTablefile && timesheetFile){
+        parseXLSX(lookUpTablefile, true, 0);
+        parseXLSX(timesheetFile, false, 0);
+    }
+    checkForErrors("excel",false,"");
   } catch (error) {
     toggleToast({ isError: true, msg: error.msg }, true);
   }
-};
-
-const toggleToast = (data, autohide) => {
-  const toastContainer = $("#toast-container");
-  if (toastContainer.find("div").length > 0) {
-    toastContainer.empty();
-  }
-  let template = ``;
-  if (data.isError) {
-    template = `<div class="toast" data-autohide="${autohide}" data-delay="5000">
-    <div class="toast-header error-toast">
-      <strong class="mr-auto">Employee TS</strong>
-      <small>Just now</small>
-      <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
-        <span style="color:white" aria-hidden="true">&times;</span>
-      </button>
-    </div>
-    <div class="toast-body">
-      ${data.msg}
-    </div>
-  </div>`;
-  } else {
-    template = `<div class="toast" data-autohide="${autohide}" data-delay="5000">
-    <div class="toast-header info-toast">
-      <strong class="mr-auto">Employee TS</strong>
-      <small>Just now</small>
-      <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
-        <span style="color:white" aria-hidden="true">&times;</span>
-      </button>
-    </div>
-    <div class="toast-body">
-      ${data.msg}
-    </div>
-  </div>`;
-  }
-  toastContainer.append(template);
-  const $toast = $(".toast");
-  $toast.toast("show");
 };
 
 const excelDatetoJSDate = (serial, seperator) => {
@@ -200,11 +269,16 @@ const deleteDataFromQuickBooks = async (dates, empDate) => {
   console.log("[Employee date relationship]", empDate);
 
   try {
-    await asyncForEach(Array.from(dates), async (element) => {
+    await asyncForEach(Array.from(dates), async (element,index) => {
       const response = await fetch(
         `/getTimeActivityByDate?TxnDate=${element.toString()}&CustomerId=${selectedCustomerId}`
       );
       const data = await response.json();
+      if((index+1) === (Array.from(dates).length)){
+            setProgressPercentage(100);
+      }else{
+            setProgressPercentage((index/Array.from(dates).length)*100);
+      }
       if (data.error === "Failed") {
         return;
       }
@@ -234,9 +308,10 @@ const deleteDataFromQuickBooks = async (dates, empDate) => {
 
 const validateSheet = async function (sheet, isFirst) {
   toggleBouncyBar("visible");
+  if(isFirst)setProgressPercentage(0);
   let customData = {};
   //$("#validate-toast").toast("show");
-  toggleToast({ msg: "Validating Data.. Please Wait" }, true);
+  toggleToast({ isError: false, msg: "Validating Data.. Please Wait" }, true);
   //Set of employees
   console.log("Validate Sheets");
   let employeeNames = new Set([]);
@@ -272,9 +347,11 @@ const validateSheet = async function (sheet, isFirst) {
           },
           true
         );
+        checkForErrors("table",true,`Employee: ${eachEmp} doesn't exist in quickbooks`);
       } else {
         employees["" + eachEmp] = data.id;
       }
+      checkForErrors("table",false,"");
     } catch (error) {
       console.log(error);
     }
@@ -373,6 +450,7 @@ const validateSheet = async function (sheet, isFirst) {
   }
   customData["payload"] = samplePayloads;
   console.log("[Validated payload]", customData);
+  toggleBouncyBar("hidden");
   return customData;
 };
 
@@ -386,18 +464,49 @@ const parseSheets = function (workbook, sheets) {
   });
 };
 
+const validateSheetColumns = (sheetData, columnRef) => {
+  const lookupSheetColumns = Object.keys(sheetData[0]);
+  return columnRef.every((column) => lookupSheetColumns.includes(column));
+};
+
 const parseXLSX = async (file, isLookup, idx) => {
   const workBook = XLSX.read(file, { type: "binary" });
   const sheetNameList = workBook.SheetNames;
   if (isLookup) {
-    lookUpTableData = parseSheets(workBook, sheetNameList)[idx];
+    const tempLookupData = parseSheets(workBook, sheetNameList)[idx];
+    const lookupColumnRef = ["NblyName", "QBOName", "RateCard"];
+    const isColumnKeysValidated = validateSheetColumns(
+      tempLookupData,
+      lookupColumnRef
+    );
+    if(isColumnKeysValidated){
+        (lookUpTableData = tempLookupData)
+    }
+    else{
+        toggleToast({isError: true,msg: "Columns missing in Lookup table file.",},true);
+        checkForErrors("excel",true,"Columns missing in Lookup table file.");
+    }
+
   } else {
-    const excelData = parseSheets(workBook, sheetNameList);
+    const excelData = parseSheets(workBook, sheetNameList)[idx];
     //console.log(excelData[idx])
-    const mappedData = lookUpTableMapping(excelData[idx], lookUpTableData);
-    //console.log("[Mapped Data]", mappedData)
-    const validatedData = await validateSheet(mappedData, true);
-    populateTable(validatedData);
+    const timesheetColumnRef = ["Date", "Hours", "Person", "Budget"];
+    const isColumnKeysValidated = validateSheetColumns(
+      excelData,
+      timesheetColumnRef
+    );
+    if (isColumnKeysValidated) {
+      const mappedData = lookUpTableMapping(excelData, lookUpTableData);
+      //console.log("[Mapped Data]", mappedData)
+      const validatedData = await validateSheet(mappedData, true);
+      populateTable(validatedData);
+    } else {
+      toggleToast(
+        { isError: true, msg: "Columns missing in timesheet file" },
+        true
+      );
+      checkForErrors("excel",true,"Columns missing in timesheet file");
+    }
   }
 };
 
@@ -419,20 +528,22 @@ const fileReader = (file) => {
   //   }
   // });
   // reader.readAsBinaryString(file);
+    if(typeof file === "undefined"){
+        return;
+    }
+      const temporaryFileReader = new FileReader();
 
-  const temporaryFileReader = new FileReader();
+      return new Promise((resolve, reject) => {
+        temporaryFileReader.onerror = () => {
+          temporaryFileReader.abort();
+          reject(new DOMException("Problem parsing input file."));
+        };
 
-  return new Promise((resolve, reject) => {
-    temporaryFileReader.onerror = () => {
-      temporaryFileReader.abort();
-      reject(new DOMException("Problem parsing input file."));
-    };
-
-    temporaryFileReader.onload = () => {
-      resolve(temporaryFileReader.result);
-    };
-    temporaryFileReader.readAsBinaryString(file);
-  });
+        temporaryFileReader.onload = () => {
+          resolve(temporaryFileReader.result);
+        };
+        temporaryFileReader.readAsBinaryString(file);
+      });
 };
 
 const batchPostTimeActivity = async (batchPayload) => {
@@ -465,9 +576,20 @@ const populateTable = function (validatedData) {
     dataTable.columns.adjust().draw();
   } else {
     dataTable = $("#data-table").DataTable({
-      responsive: true,
+      responsive: {
+        details: {
+          type: "column",
+        },
+      },
       data: payload,
-      dom: "Bfrtip",
+      dom:
+        "<'row mb-3'<'col-sm-12 col-md-6'B>><'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+        "<'row'<'col-sm-12'tr>>" +
+        "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+      pageLength: 30,
+      pagingType: "full_numbers",
+      lengthChange: true,
+      lengthMenu: [10, 30, 50, 75, 100],
       buttons: [
         {
           text: "Edit",
@@ -526,6 +648,7 @@ const populateTable = function (validatedData) {
                 },
                 true
               );
+              checkForErrors("table",true,"Submit Failed. There seems to be some conflicts in your data.");
               //dataTable.clear().rows.add(data.payload).draw();
               reinitializeTable(data);
             } else {
@@ -598,6 +721,7 @@ const populateTable = function (validatedData) {
                 { msg: "Successfully pushed data to QuickBooks" },
                 true
               );
+               checkForErrors("table",false,"");
             }
           },
         },
@@ -712,8 +836,10 @@ if (isAdvancedUpload) {
       if (droppedFiles.length == 2) {
         console.log("2 files selected", droppedFiles);
         filterExcelFiles(droppedFiles);
+        checkForErrors("excel",false,"");
       } else {
-        toggleToast({ isError: true, msg: "Upload 2 excel files" }, true);
+        toggleToast({ isError: true, msg: "Please Upload 2 Files. 1-TimeExplorer 2-Lookup Table" }, true);
+        checkForErrors("excel",true,"Please Upload 2 Files. 1-TimeExplorer 2-Lookup Table");
       }
     });
 
@@ -725,8 +851,10 @@ if (isAdvancedUpload) {
     if (files.length == 2) {
       console.log("2 files selected", files);
       filterExcelFiles(files);
+      checkForErrors("excel",false,"");
     } else {
-      toggleToast({ isError: true, msg: "Upload 2 excel files" }, true);
+      toggleToast({ isError: true, msg: "Please Upload 2 Files. 1-TimeExplorer 2-Lookup Table" }, true);
+      checkForErrors("excel",true,"Please Upload 2 Files. 1-TimeExplorer 2-Lookup Table");
     }
   });
 }
