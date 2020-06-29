@@ -33,7 +33,7 @@
 <body class="bg-light">
   <div class="main-container">
     <div style="background-color: #fff;" class="nav-container sticky-top">
-      <nav class="navbar navbar-expand-lg navbar-light navbar-custom box-shadow ">
+      <nav style="padding-bottom: 0;" class="navbar navbar-expand-lg navbar-light navbar-custom box-shadow">
         <a class="navbar-brand navbar-brand-custom" href="#"><img src="../static/images/Zapcom-Logo.png" height="40px"
             width="auto" th:src="@{/images/Zapcom-Logo.png}" alt="ZapCom Group Inc." />
           <span class="brand-title">Employee TimeSheet</span></a>
@@ -50,25 +50,29 @@
           </ul>
           <a href="/logout" class="nav-link navbar-text">Logout</a>
         </div>
-      </nav>
 
+      </nav>
       <div id="custom-loader" class="loader">
         <div class="bar"></div>
       </div>
-    </div>
-    <div id="progressBarContainer" style="display:none;">
-      <div id="progressBarInfo" style="width: 100%;text-align: center;font-size: 14px;font-weight: 600;">
-        Please wait while data is being validated (100% Complete)
-      </div>
-      <div class="progress" style="background-color:lightgray;">
-        <div id="progressBar" class="progress-bar progress-bar-info" role="progressbar" aria-valuenow="50"
-          aria-valuemin="0" aria-valuemax="100" style="width:10%; background-color: #2b5588;">
+      <div id="progressBarContainer" style="display: none;">
+        <div id="progressBarInfo" style="
+              width: 100%;
+              text-align: center;
+              font-size: 14px;
+              font-weight: 600;
+            ">
+          Please wait while data is being validated (100% Complete)
+        </div>
+        <div class="progress" style="background-color: lightgray;">
+          <div id="progressBar" class="progress-bar progress-bar-info" role="progressbar" aria-valuenow="50"
+            aria-valuemin="0" aria-valuemax="100" style="width: 10%; background-color: #2b5588;"></div>
         </div>
       </div>
     </div>
-    <main id="app" class="container">
+    <main id="app" class="container" style="min-width: 400px;">
       <div class="d-flex align-items-center p-3 my-3 text-white-50 rounded box-shadow"
-        style="background-color: #2b5588; justify-content:space-between">
+        style="background-color: #2b5588; justify-content: space-between;">
         <div class="lh-100">
           <h6 class="mb-0 text-white lh-100">QuickBooks TimeSheet Upload</h6>
         </div>
@@ -77,33 +81,35 @@
             <option value="">Select Customer</option>
           </select>
           <!-- <div id="progressLoader" class="hideProgressLoader">
-                  <label class="control-label"> Fetching Customers.... </label>
-                  <div class="progress">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
-                  </div>
-                </div> -->
+                      <label class="control-label"> Fetching Customers.... </label>
+                      <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
+                      </div>
+                    </div> -->
         </div>
       </div>
       <div class="my-3 p-3 bg-white rounded box-shadow">
-        <h6 data-toggle="tooltip" data-placement="top" title="Tooltip on top"
-          class="border-bottom border-gray pb-2 mb-0">
+        <h6 class="border-bottom border-gray pb-2 mb-0">
           1. Upload TimeSheet and Lookup Table
         </h6>
         <div class="row pt-3">
           <div class="col-md-6">
-            <p class="font-italic">* Upload a .xlsx file only</p>
-            <p class="font-italic">* Please select a Customer to Drop/Select Excel Sheet</p>
-            <p class="font-italic">
-              * The timesheet file should have the following columns: Date, Hours,
-              Person, Budget
-            </p>
-            <p class="font-italic">
-              * The lookup table file should have the following columns: NblyName, QBOName, RateCard
-            </p>
-            <div>
-
-
-            </div>
+            <ul>
+              <li class="lead infoBox">
+                Upload a <em><b>.xlsx</b></em> file only
+              </li>
+              <li class="lead infoBox">
+                Please select a Customer to Drop/Select Excel Sheet
+              </li>
+              <li class="lead infoBox">
+                The <em><b>Timesheet file</b></em> should have the following
+                columns: Date, Hours, Person, Budget
+              </li>
+              <li class="lead infoBox">
+                The <em><b>LookUp file</b></em> should have the following
+                columns: NblyName, QBOName, RateCard
+              </li>
+            </ul>
           </div>
           <div id="dropBox" class="col-md-6 hideDropBox">
             <form class="box" method="post" action="" enctype="multipart/form-data">
@@ -123,6 +129,9 @@
               <div class="box__success">Done!</div>
               <div class="box__error">Error! <span></span>.</div>
             </form>
+            <div id="xlError" style="margin: 1rem 0 0 0;" class="alert alert-danger hideElement" role="alert">
+              <ul id="xlErrorList"></ul>
+            </div>
           </div>
         </div>
       </div>
@@ -130,7 +139,12 @@
         <h6 class="border-bottom border-gray pb-2 mb-0">
           2. Excel Data Import
         </h6>
-        <div style="overflow:auto;" class="row pt-3">
+        <div id="errorContainer" style="margin: 1rem 0 0 0;" class="alert alert-danger hideElement" role="alert">
+          <h6 class="alert-heading">Error</h6>
+          <hr />
+          <ul id="errorList"></ul>
+        </div>
+        <div style="overflow: auto;" class="row pt-3">
           <div class="col-md-12">
             <div id="table" class="table-editable">
               <table style="min-width: 653px; width: 100%;" id="data-table"
@@ -140,10 +154,14 @@
                     <th style="display: none;" class="text-center">Id</th>
                     <th class="text-center">Date</th>
                     <th class="text-center">Hours</th>
-                    <th style="display: none;" class="text-center">EmployeeRefVal</th>
+                    <th style="display: none;" class="text-center">
+                      EmployeeRefVal
+                    </th>
                     <th class="text-center">Person</th>
                     <th class="text-center">Budget</th>
-                    <th style="display: none;" class="text-center">CustomerRefVal</th>
+                    <th style="display: none;" class="text-center">
+                      CustomerRefVal
+                    </th>
                     <th class="text-center">Hourly Rate</th>
                     <th class="text-center">BillableStatus</th>
                   </tr>
@@ -157,41 +175,41 @@
     </main>
     <div id="toast-container">
       <!-- <div id="validate-toast" class="toast" data-autohide="false" data-delay="5000">
-          <div class="toast-header">
-            <strong class="mr-auto">Employee TS</strong>
-            <small>Just now</small>
-            <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-          <div class="toast-body">
-            Validating Data.. Please Wait
-          </div>
-        </div>
-        <div id="sub-success-toast" class="toast" data-delay="5000">
-          <div class="toast-header">
-            <strong class="mr-auto">Employee TS</strong>
-            <small>Just now</small>
-            <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-          <div class="toast-body">
-            Successfully pushed data to QuickBooks
-          </div>
-        </div>
-        <div id="sub-error-toast" class="toast" data-delay="5000">
-          <div class="toast-header">
-            <strong class="mr-auto">Employee TS</strong>
-            <small>Just now</small>
-            <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-          <div class="toast-body">
-            Submit Failed. There seems to be some conflicts in your data.
-          </div>
-        </div> -->
+              <div class="toast-header">
+                <strong class="mr-auto">Employee TS</strong>
+                <small>Just now</small>
+                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="toast-body">
+                Validating Data.. Please Wait
+              </div>
+            </div>
+            <div id="sub-success-toast" class="toast" data-delay="5000">
+              <div class="toast-header">
+                <strong class="mr-auto">Employee TS</strong>
+                <small>Just now</small>
+                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="toast-body">
+                Successfully pushed data to QuickBooks
+              </div>
+            </div>
+            <div id="sub-error-toast" class="toast" data-delay="5000">
+              <div class="toast-header">
+                <strong class="mr-auto">Employee TS</strong>
+                <small>Just now</small>
+                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="toast-body">
+                Submit Failed. There seems to be some conflicts in your data.
+              </div>
+            </div> -->
     </div>
     <div class="modal fade" id="edit-modal" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog"
       aria-labelledby="staticBackdropLabel" aria-hidden="true">
