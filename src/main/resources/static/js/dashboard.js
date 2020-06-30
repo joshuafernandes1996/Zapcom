@@ -339,7 +339,8 @@ const validateSheet = async function (sheet, isFirst) {
       const data = await response.json();
       //console.log(data);
       //employees["" + eachEmp] = data === "failed" ? data : data.id;
-      if (data.error === "failed") {
+      console.log("[Employee Data]", data)
+      if (data.error === "Failed") {
         toggleToast(
           {
             isError: true,
@@ -348,6 +349,7 @@ const validateSheet = async function (sheet, isFirst) {
           true
         );
         checkForErrors("table",true,`Employee: ${eachEmp} doesn't exist in quickbooks`);
+        employees["" + eachEmp] = data.error
       } else {
         employees["" + eachEmp] = data.id;
       }
@@ -393,6 +395,10 @@ const validateSheet = async function (sheet, isFirst) {
   let rowErrors = {};
   sheet.forEach((tsRow, idx) => {
     //console.log(tsRow)
+    const empName = tsRow.Person.toString();
+    if(employees[empName] === "Failed") {
+      return
+    }
     let validationErrors = [];
     let outputDate;
     if (tsRow.Date) {
@@ -408,7 +414,7 @@ const validateSheet = async function (sheet, isFirst) {
         "$3/$1/$2"
       ).toString();
     }
-    const empName = tsRow.Person.toString();
+    
     const empID = employees[empName].toString();
     const cusID = selectedCustomerId.toString();
     const effort = tsRow.Hours.toString();
