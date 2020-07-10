@@ -1,3 +1,6 @@
+const QBLogin = document.getElementById("quickbook-login");
+const QBSignUp = document.getElementById("quickbook-signup");
+
 function launchPopup(path) {
   var win;
   var checkConnect;
@@ -7,10 +10,19 @@ function launchPopup(path) {
   // Launch Popup
   win = window.open(path, "connectPopup", parameters);
 }
-document.getElementById("quickbook-login").addEventListener(
+
+QBLogin.addEventListener(
   "click",
   function () {
     launchPopup("connectToQuickbooks");
   },
   false
 );
+
+QBSignUp.addEventListener(
+  "click",
+  function () {
+    window.open("https://quickbooks.intuit.com/", "_blank", "noopener")
+  },
+  false
+)
