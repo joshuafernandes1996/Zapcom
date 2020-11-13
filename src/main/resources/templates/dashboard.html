@@ -6,6 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ZapCom Timesheets - Zap2QB</title>
   <script>
+    var loc = window.location.href+'';
+    if (loc.indexOf('http://')==0){
+        window.location.href = loc.replace('http://','https://');
+    }
+
     if (window.opener) {
       window.opener.location.href = "/dashboard";
       window.close();

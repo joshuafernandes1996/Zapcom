@@ -11,6 +11,12 @@
     />
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
           integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+    <script>
+        var loc = window.location.href+'';
+        if (loc.indexOf('http://')==0){
+            window.location.href = loc.replace('http://','https://');
+        }
+    </script>
 </head>
 <body>
     <!-- Connect To QuickBooks Button -->
