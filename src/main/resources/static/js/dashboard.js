@@ -230,6 +230,18 @@ const excelDatetoJSDate = (serial, seperator) => {
  return parsed;
 };
 
+const excelDatetoJSDate2 = (serial, seperator) => {
+  var utc_days  = Math.floor(serial - 25569);
+  var utc_value = utc_days * 86400;
+  var date_info = new Date(utc_value * 1000);
+
+ const pad = (n) => {
+   return n < 10 ? "0" + n : n;
+ };
+ const parsed = `${pad(date_info.getMonth()+1)}${seperator}${pad(date_info.getDate())}${seperator}${pad(date_info.getFullYear())}`;
+ return parsed;
+};
+
 const isAdvancedUpload = (function () {
   var div = document.createElement("div");
   return (
@@ -404,7 +416,7 @@ const validateSheet = async function (sheet, isFirst) {
     let validationErrors = [];
     let outputDate;
     if (tsRow.Date) {
-      const parsedDate = excelDatetoJSDate(tsRow.Date,"-");
+      const parsedDate = excelDatetoJSDate2(tsRow.Date,"/");
       outputDate = parsedDate.toString();
     } else {
       outputDate = tsRow.TxnDate.toString();
