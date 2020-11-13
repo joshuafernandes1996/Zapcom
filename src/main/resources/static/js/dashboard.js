@@ -226,7 +226,7 @@ const excelDatetoJSDate = (serial, seperator) => {
  const pad = (n) => {
    return n < 10 ? "0" + n : n;
  };
- const parsed = `${date_info.getFullYear()}${seperator}${pad(date_info.getMonth())}${seperator}${pad(date_info.getDate())}`;
+ const parsed = `${date_info.getFullYear()}${seperator}${pad(date_info.getMonth()+1)}${seperator}${pad(date_info.getDate())}`;
  return parsed;
 };
 
