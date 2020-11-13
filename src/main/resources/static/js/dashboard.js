@@ -219,13 +219,15 @@ const filterExcelFiles = async (fileList) => {
 };
 
 const excelDatetoJSDate = (serial, seperator) => {
-  const pad = (n) => {
-    return n < 10 ? "0" + n : n;
-  };
-  const date = XLSX.SSF.parse_date_code(serial);
-  const { d, m, y } = date;
-  const parsed = `${y}${seperator}${pad(m)}${seperator}${pad(d)}`;
-  return parsed;
+  var utc_days  = Math.floor(serial - 25569);
+  var utc_value = utc_days * 86400;
+  var date_info = new Date(utc_value * 1000);
+
+ const pad = (n) => {
+   return n < 10 ? "0" + n : n;
+ };
+ const parsed = `${date_info.getFullYear()}${seperator}${pad(date_info.getMonth())}${seperator}${pad(date_info.getDate())}`;
+ return parsed;
 };
 
 const isAdvancedUpload = (function () {
@@ -402,17 +404,10 @@ const validateSheet = async function (sheet, isFirst) {
     let validationErrors = [];
     let outputDate;
     if (tsRow.Date) {
-      const parsedDate = XLSX.SSF.parse_date_code(tsRow.Date);
-      const { d, m, y } = parsedDate;
-      const inputDate = `${m}/${d}/${y}`;
-      outputDate = inputDate
-        .replace(/(\d\d)\/(\d\d)\/(\d{4})/, "$3/$1/$2")
-        .toString();
+      const parsedDate = excelDatetoJSDate(tsRow.Date,"-");
+      outputDate = parsedDate.toString();
     } else {
-      outputDate = tsRow.TxnDate.replace(
-        /(\d\d)\/(\d\d)\/(\d{4})/,
-        "$3/$1/$2"
-      ).toString();
+      outputDate = tsRow.TxnDate.toString();
     }
     
     const empID = employees[empName].toString();
