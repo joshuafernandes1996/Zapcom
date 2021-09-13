@@ -39,8 +39,8 @@
   <div class="main-container">
     <div style="background-color: #fff;" class="nav-container sticky-top">
       <nav style="padding-bottom: 0;" class="navbar navbar-expand-lg navbar-light navbar-custom box-shadow">
-        <a class="navbar-brand navbar-brand-custom" href="#"><img src="../static/images/Zapcom-Logo.png" height="40px"
-            width="auto" th:src="@{/images/Zapcom-Logo.png}" alt="ZapCom Group Inc." />
+        <a class="navbar-brand navbar-brand-custom" href="#"><img src="../static/images/zapcomLogo.png" height="40px"
+            width="auto" th:src="@{/images/zapcomLogo.png}" alt="ZapCom Group Inc." />
           <span class="brand-title">Employee TimeSheet</span></a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
           aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -169,6 +169,7 @@
                     </th>
                     <th class="text-center">Hourly Rate</th>
                     <th class="text-center">BillableStatus</th>
+                    <th class="text-center">Product/Service</th>
                   </tr>
                 </thead>
                 <tbody></tbody>
@@ -259,6 +260,10 @@
               <input type="hidden" class="form-control" id="row-id" />
               <input type="hidden" class="form-control" id="employee-id" />
               <input type="hidden" class="form-control" id="customer-id" />
+              <div class="form-group">
+                <label>Product/Service</label>
+                <input type="text" class="form-control" id="product-service" />
+              </div>
             </form>
           </div>
           <div class="modal-footer">

@@ -373,16 +373,15 @@ const validateSheet = async function (sheet, isFirst) {
     }
   });
 
-  //console.log("[Employees]", employees);
-  //console.log("[Customers]", customers);
+  let products = [];
 
-  // let empDates = new Set([]);
-  // sheet.forEach((eachRow) => {
-  //   empDates.add({
-  //     empId: employees[eachRow.Person],
-  //     date: excelDatetoJSDate(eachRow.Date, "-"),
-  //   });
-  // });
+  try{
+    let response = await fetch( `/getProducts`);
+    products = await response.json();
+  }
+  catch(error){
+    console.log("Fetching Products Error: ",error)
+  }
 
   if (isFirst) {
     try {
@@ -430,6 +429,7 @@ const validateSheet = async function (sheet, isFirst) {
       ? tsRow.Budget.toString()
       : tsRow.Description.toString();
     const billableStatus = hlyRate >= 1 ? "Billable" : "NotBillable";
+    let productRef = products.find(product => product.name.toString() === tsRow.Product.toString());
     const samplePayload = {
       Id: idx,
       TxnDate: outputDate,
@@ -440,6 +440,8 @@ const validateSheet = async function (sheet, isFirst) {
       Description: desc,
       BillableStatus: billableStatus,
       HourlyRate: hlyRate,
+      Product: tsRow.Product.toString(),
+      ProductId: productRef.id.toString()
     };
     samplePayloads.push(samplePayload);
     validateEmployeeEffort[empName + outputDate + billableStatus] =
@@ -503,7 +505,7 @@ const parseXLSX = async (file, isLookup, idx) => {
   } else {
     const excelData = parseSheets(workBook, sheetNameList)[idx];
     //console.log(excelData[idx])
-    const timesheetColumnRef = ["Date", "Hours", "Person", "Budget"];
+    const timesheetColumnRef = ["Date", "Hours", "Person", "Budget","Product"];
     const isColumnKeysValidated = validateSheetColumns(
       excelData,
       timesheetColumnRef
@@ -611,7 +613,7 @@ const populateTable = function (validatedData) {
               .rows({ selected: true })
               .data()
               .toArray();
-            //console.log(selectedRow);
+            //console.log("=P=",selectedRow);
             const {
               Id,
               TxnDate,
@@ -622,6 +624,7 @@ const populateTable = function (validatedData) {
               Description,
               BillableStatus,
               HourlyRate,
+              Product
             } = selectedRow[0];
             $("#date").val(TxnDate);
             $("#hours").val(Hours);
@@ -632,6 +635,7 @@ const populateTable = function (validatedData) {
             $("#row-id").val(Id);
             $("#employee-id").val(EmployeeRefVal);
             $("#customer-id").val(CustomerRefVal);
+            $("#product-service").val(Product)
             $editModal.modal({ show: true });
           },
         },
@@ -712,6 +716,7 @@ const populateTable = function (validatedData) {
                   Description,
                   BillableStatus,
                   HourlyRate,
+                  ProductId
                 } = timeActivity;
                 const samplePayload = {
                   txnDate: TxnDate,
@@ -721,6 +726,7 @@ const populateTable = function (validatedData) {
                   description: Description,
                   billableStatus: BillableStatus,
                   hourlyRate: HourlyRate,
+                  productRefVal: ProductId
                 };
                 batchPayload.push(samplePayload);
                 if (batchPayload.length == 30 || idx == payload.length - 1) {
@@ -770,6 +776,9 @@ const populateTable = function (validatedData) {
         {
           data: "BillableStatus",
         },
+        {
+          data: "Product",
+        },
       ],
       rowid: "Id",
       rowCallback: function (row, data, displayNum, displayIndex, dataIndex) {
@@ -811,6 +820,7 @@ const populateTable = function (validatedData) {
       Description: $("#budget").val(),
       BillableStatus: $("#billable-status").val(),
       HourlyRate: $("#hourlyRate").val(),
+      Product: $("#product-service").val()
     };
     payload = updateInArray(payload, editedRow);
     //dataTable.row(id).data(editedRow).invalidate().draw();

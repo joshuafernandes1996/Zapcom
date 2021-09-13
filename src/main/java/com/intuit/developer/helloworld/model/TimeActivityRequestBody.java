@@ -8,6 +8,7 @@ public class TimeActivityRequestBody {
     private String Description;
     private String BillableStatus;
     private String hourlyRate;
+    private String ProductRefVal;
 
     public TimeActivityRequestBody() {
         super();
@@ -68,4 +69,8 @@ public class TimeActivityRequestBody {
     public void setHourlyRate(String _hourlyRate) {
         hourlyRate = _hourlyRate;
     }
+
+    public String getProductRefVal() { return ProductRefVal; }
+
+    public void setProductRefVal(String productRefVal) { ProductRefVal = productRefVal; }
 }
