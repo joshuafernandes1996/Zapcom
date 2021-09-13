@@ -333,6 +333,73 @@ public class QBOController {
 
 	}
 
+	/**
+	 * Sample QBO API call using OAuth2 tokens to get product service data
+	 *
+	 * @param session
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping("/getProducts")
+	public String GetQBOProducts(HttpSession session) {
+		String realmId = (String) session.getAttribute("realmId");
+		if (StringUtils.isEmpty(realmId)) {
+			return new JSONObject().put("response", "No realm ID.  QBO calls only work if the accounting scope was passed!").toString();
+		}
+		String accessToken = (String) session.getAttribute("access_token");
+		try {
+
+			//get DataService
+			DataService service = helper.getDataService(realmId, accessToken);
+
+			// get all Products
+			String sql = "Select * from Item";
+			QueryResult queryResult = service.executeQuery(sql);
+			return itemProcessResponse(failureMsg, queryResult);
+
+		}
+		/*
+		 * Handle 401 status code -
+		 * If a 401 response is received, refresh tokens should be used to get a new access token,
+		 * and the API call should be tried again.
+		 */ catch (InvalidTokenException e) {
+			logger.error("Error while calling executeQuery :: " + e.getMessage());
+
+			//refresh tokens
+			logger.info("received 401 during get Products call, refreshing tokens now");
+			OAuth2PlatformClient client = factory.getOAuth2PlatformClient();
+			String refreshToken = (String) session.getAttribute("refresh_token");
+
+			try {
+				BearerTokenResponse bearerTokenResponse = client.refreshToken(refreshToken);
+				session.setAttribute("access_token", bearerTokenResponse.getAccessToken());
+				session.setAttribute("refresh_token", bearerTokenResponse.getRefreshToken());
+
+				//call customer info again using new tokens
+				logger.info("calling Profucts Ingo using new tokens");
+				DataService service = helper.getDataService(realmId, accessToken);
+
+				// get all Products
+				String sql = "Select * from Item";
+				QueryResult queryResult = service.executeQuery(sql);
+				return itemProcessResponse(failureMsg, queryResult);
+
+			} catch (OAuthException e1) {
+				logger.error("Error while calling bearer token :: " + e.getMessage());
+				return new JSONObject().put("response", failureMsg).toString();
+			} catch (FMSException e1) {
+				logger.error("Error while calling company currency :: " + e.getMessage());
+				return new JSONObject().put("response", failureMsg).toString();
+			}
+
+		} catch (FMSException e) {
+			List<Error> list = e.getErrorList();
+			list.forEach(error -> logger.error("Error while calling executeQuery :: " + error.getMessage()));
+			return new JSONObject().put("response", failureMsg).toString();
+		}
+
+	}
+
 	@ResponseBody
 	@RequestMapping(value = "/deleteTimeActivity/{Id}/{SyncToken}", method = RequestMethod.GET)
 	public String deleteTimeActivity(HttpSession session, @PathVariable String Id, @PathVariable String SyncToken) {
@@ -519,6 +586,9 @@ public class QBOController {
 			}
 			timeActivity.setNameOf(TimeActivityTypeEnum.EMPLOYEE);
 			timeActivity.setDescription(tempTimeActivity.getDescription());
+			ReferenceType productRef = new ReferenceType();
+			productRef.setValue(tempTimeActivity.getProductRefVal());
+			timeActivity.setItemRef(productRef);
 			idx.getAndIncrement();
 			batchOperation.addEntity(timeActivity, OperationEnum.CREATE, "bid" + idx.get());
 		});
@@ -620,6 +690,21 @@ public class QBOController {
 
 		}
 		return failureMsg;
+	}
+
+	private String itemProcessResponse(String failureMsg, QueryResult queryResult) {
+		if (!queryResult.getEntities().isEmpty() && queryResult.getEntities().size() > 0) {
+			List<Item> itemInfo = (List<Item>) queryResult.getEntities();
+			ObjectMapper mapper = new ObjectMapper();
+			try {
+				String jsonInString = mapper.writeValueAsString(itemInfo);
+				return jsonInString;
+			} catch (JsonProcessingException e) {
+				logger.error("Exception while getting employee info ", e);
+				return new JSONObject().put("response",failureMsg).toString();
+			}
+		}
+		return  new JSONObject().put("error", failureMsg).toString();
 	}
 
 	private String empProcessResponse(String failureMsg, QueryResult queryResult) {
