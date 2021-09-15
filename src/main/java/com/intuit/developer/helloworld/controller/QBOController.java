@@ -353,7 +353,7 @@ public class QBOController {
 			DataService service = helper.getDataService(realmId, accessToken);
 
 			// get all Products
-			String sql = "Select * from Item STARTPOSITION 1 MAXRESULTS 1000";
+			String sql = "select * from Item maxresults 1000";
 			QueryResult queryResult = service.executeQuery(sql);
 			return itemProcessResponse(failureMsg, queryResult);
 
@@ -380,7 +380,7 @@ public class QBOController {
 				DataService service = helper.getDataService(realmId, accessToken);
 
 				// get all Products
-				String sql = "Select * from Item STARTPOSITION 1 MAXRESULTS 1000";
+				String sql = "select * from Item maxresults 1000";
 				QueryResult queryResult = service.executeQuery(sql);
 				return itemProcessResponse(failureMsg, queryResult);
 
