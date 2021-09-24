@@ -353,9 +353,13 @@ public class QBOController {
 			DataService service = helper.getDataService(realmId, accessToken);
 
 			// get all Products
-			String sql = "select * from Item maxresults 2500";
-			QueryResult queryResult = service.executeQuery(sql);
-			return itemProcessResponse(failureMsg, queryResult);
+			String sql1 = "select * from Item startposition 0 maxresults 1000"; //0-999
+			String sql2 = "select * from Item startposition 1000 maxresults 1000"; //1000-2000
+			String sql3 = "select * from Item startposition 2000 maxresults 1000"; //2000-3000
+			QueryResult queryResult1 = service.executeQuery(sql1);
+			QueryResult queryResult2 = service.executeQuery(sql2);
+			QueryResult queryResult3 = service.executeQuery(sql3);
+			return itemProcessResponse(failureMsg, queryResult1, queryResult2, queryResult3);
 
 		}
 		/*
@@ -376,13 +380,18 @@ public class QBOController {
 				session.setAttribute("refresh_token", bearerTokenResponse.getRefreshToken());
 
 				//call customer info again using new tokens
-				logger.info("calling Profucts Ingo using new tokens");
+				logger.info("calling Products Ingo using new tokens");
 				DataService service = helper.getDataService(realmId, accessToken);
 
 				// get all Products
-				String sql = "select * from Item maxresults 2500";
-				QueryResult queryResult = service.executeQuery(sql);
-				return itemProcessResponse(failureMsg, queryResult);
+				// get all Products
+				String sql1 = "select * from Item startposition 0 maxresults 1000"; //0-999
+				String sql2 = "select * from Item startposition 1000 maxresults 1000"; //1000-2000
+				String sql3 = "select * from Item startposition 2000 maxresults 1000"; //2000-3000
+				QueryResult queryResult1 = service.executeQuery(sql1);
+				QueryResult queryResult2 = service.executeQuery(sql2);
+				QueryResult queryResult3 = service.executeQuery(sql3);
+				return itemProcessResponse(failureMsg, queryResult1, queryResult2, queryResult3);
 
 			} catch (OAuthException e1) {
 				logger.error("Error while calling bearer token :: " + e.getMessage());
@@ -692,19 +701,24 @@ public class QBOController {
 		return failureMsg;
 	}
 
-	private String itemProcessResponse(String failureMsg, QueryResult queryResult) {
-		if (!queryResult.getEntities().isEmpty() && queryResult.getEntities().size() > 0) {
-			List<Item> itemInfo = (List<Item>) queryResult.getEntities();
+	private String itemProcessResponse(String failureMsg, QueryResult qr1, QueryResult qr2, QueryResult qr3) {
+			List<Item> itemInfo1 = (List<Item>) qr1.getEntities();
+			List<Item> itemInfo2 = (List<Item>) qr2.getEntities();
+			List<Item> itemInfo3 = (List<Item>) qr3.getEntities();
+
+			//Merging Items
+			List<Item> newList = new ArrayList<Item>(itemInfo1);
+			newList.addAll(itemInfo2);
+			newList.addAll(itemInfo3);
+
 			ObjectMapper mapper = new ObjectMapper();
 			try {
-				String jsonInString = mapper.writeValueAsString(itemInfo);
+				String jsonInString = mapper.writeValueAsString(newList);
 				return jsonInString;
 			} catch (JsonProcessingException e) {
 				logger.error("Exception while getting employee info ", e);
 				return new JSONObject().put("response",failureMsg).toString();
 			}
-		}
-		return  new JSONObject().put("error", failureMsg).toString();
 	}
 
 	private String empProcessResponse(String failureMsg, QueryResult queryResult) {
